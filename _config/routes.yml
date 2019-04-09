@@ -1,0 +1,8 @@
+---
+Name: s3upload-routes
+Before:
+  - 'adminroutes'
+---
+SilverStripe\Control\Director:
+  rules:
+    'admin/s3': 'Lvl51\S3\S3UploadController'

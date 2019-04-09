@@ -1,5 +1,5 @@
 {
-  "name": "silverstripe-s3",
+  "name": "silverstripe-s3upload",
   "version": "0.1.0",
   "description": "SilverStripe module for file handling with S3",
   "scripts": {

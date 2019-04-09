@@ -44,8 +44,8 @@ class S3UploadField extends FormField {
     protected $acceptedFiles;
 
     public function Field($properties = array()) {
-        Requirements::javascript('level51/silverstripe-s3: client/dist/s3upload.js');
-        Requirements::css('level51/silverstripe-s3: client/dist/s3upload.css');
+        Requirements::javascript('level51/silverstripe-s3upload: client/dist/s3upload.js');
+        Requirements::css('level51/silverstripe-s3upload: client/dist/s3upload.css');
 
         return parent::Field($properties);
     }

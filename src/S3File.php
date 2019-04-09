@@ -10,15 +10,15 @@ use SilverStripe\ORM\FieldType\DBDatetime;
 /**
  * AWS S3 File record.
  *
- * @property string $Title
- * @property string $Location
- * @property string $Region
- * @property string $Bucket
- * @property string $Key
- * @property string $ETag
- * @property string $Name
- * @property int    $Size
- * @property string $Type
+ * @property string     $Title
+ * @property string     $Location
+ * @property string     $Region
+ * @property string     $Bucket
+ * @property string     $Key
+ * @property string     $ETag
+ * @property string     $Name
+ * @property int        $Size
+ * @property string     $Type
  * @property DBDatetime $LastModified
  *
  * @package Lvl51\S3
@@ -57,7 +57,8 @@ class S3File extends DataObject {
     protected function onAfterDelete() {
         parent::onAfterDelete();
 
-        // TODO trigger delete from bucket
+        // Trigger delete on s3 side
+        Service::inst()->deleteFile($this);
     }
 
     /**
@@ -82,11 +83,40 @@ class S3File extends DataObject {
         return $s3file;
     }
 
+    /**
+     * @param int  $expiresIn      Time in minutes until the link gets invalid
+     * @param bool $directDownload Whether the download should be triggered immediately or not
+     *
+     * @return string
+     */
     public function getTemporaryDownloadLink($expiresIn = 60, $directDownload = true) {
-        // TODO implement
+        return Service::inst()->getTemporaryDownloadLink($this, $expiresIn, $directDownload);
     }
 
+    /**
+     * @return string File size in a human readable format
+     */
     public function getSizeForHuman() {
         return File::format_size($this->Size);
+    }
+
+    /**
+     * Get a flat version for template usage.
+     *
+     * @return array
+     */
+    public function flatten() {
+        return [
+            'id'       => $this->ID,
+            'title'    => $this->Title,
+            'location' => $this->Location,
+            'region'   => $this->Region,
+            'bucket'   => $this->Bucket,
+            'key'      => $this->Key,
+            'etag'     => $this->ETag,
+            'name'     => $this->Name,
+            'size'     => $this->getSizeForHuman(),
+            'type'     => $this->Type
+        ];
     }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "level51/silverstripe-s3",
+  "name": "level51/silverstripe-s3upload",
   "version": "0.1.0",
   "time": "2019-04-04",
   "description": "SilverStripe module for file handling with S3",
@@ -24,7 +24,7 @@
     "nesbot/carbon": "^1.36.2"
   },
   "extra": {
-    "installer-name": "silverstripe-s3",
+    "installer-name": "silverstripe-s3upload",
     "expose": [
       "client"
     ]

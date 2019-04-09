@@ -1,5 +1,5 @@
 {
-  "name": "silverstripe-s3",
+  "name": "silverstripe-s3upload",
   "version": "0.1.0",
   "description": "SilverStripe module for file handling with S3",
   "scripts": {
@@ -43,6 +43,9 @@
     "webpack": "^4.29.6"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.17",
+    "@fortawesome/free-solid-svg-icons": "^5.8.1",
+    "@fortawesome/vue-fontawesome": "^0.1.6",
     "axios": "^0.18.0",
     "qs": "^6.7.0",
     "vue": "^2.6.10",

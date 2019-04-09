@@ -5,7 +5,11 @@ import watchElement from './util';
 const render = (el) => {
   new Vue({
     render(h) {
-      return h(S3Upload, { props: { payload: JSON.parse(el.dataset.payload) } });
+      return h(S3Upload, {
+        props: {
+          payload: JSON.parse(el.dataset.payload)
+        }
+      });
     }
   }).$mount(`#${el.id}`);
 };

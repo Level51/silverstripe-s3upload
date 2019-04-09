@@ -2,9 +2,11 @@
 
 namespace Lvl51\S3;
 
+use Lvl51\SMP\Security;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Convert;
+use SilverStripe\Dev\Debug;
 
 /**
  * Controller for S3 file/upload specific actions.
@@ -15,12 +17,20 @@ use SilverStripe\Core\Convert;
  */
 class S3UploadController extends Controller {
 
-    private static $allowed_actions = ['signRequest', 'handleFileUpload'];
+    private static $allowed_actions = ['signRequest', 'handleFileUpload', 'removeFile'];
 
     private static $url_handlers = [
-        'sign'     => 'signRequest',
-        'uploaded' => 'handleFileUpload'
+        'sign'        => 'signRequest',
+        'uploaded'    => 'handleFileUpload',
+        'remove/$ID!' => 'removeFile'
     ];
+
+    protected function init() {
+        parent::init();
+
+        if (!Security::getCurrentUserID())
+            return $this->httpError(401);
+    }
 
     /**
      * Sign the upload request for the given params.
@@ -121,9 +131,27 @@ class S3UploadController extends Controller {
         try {
             $s3File = S3File::fromUpload($body);
 
-            return Convert::array2json($s3File->toMap());
+            return Convert::array2json($s3File->flatten());
         } catch (\Exception $e) {
 
         }
+    }
+
+    /**
+     * Remove / Delete given file by id.
+     *
+     * @return mixed
+     */
+    public function removeFile() {
+        $request = $this->getRequest();
+
+        if (!$request->param('ID') ||
+            !($file = S3File::get()->byID($request->param('ID'))))
+            return $this->httpError(404);
+
+        if (!$file->canDelete())
+            return $this->httpError(403);
+
+        $file->delete();
     }
 }

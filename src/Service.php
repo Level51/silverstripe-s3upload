@@ -59,9 +59,9 @@ class Service {
     }
 
     /**
-     * @param S3File $s3File File record
-     * @param int  $expiresIn Time in minutes until the link gets invalid
-     * @param bool $directDownload Whether the download should be triggered immediately or not
+     * @param S3File $s3File         File record
+     * @param int    $expiresIn      Time in minutes until the link gets invalid
+     * @param bool   $directDownload Whether the download should be triggered immediately or not
      *
      * @return string
      */
@@ -80,5 +80,21 @@ class Service {
         $request = $this->s3->createPresignedRequest($command, "+$expiresIn minutes");
 
         return (string)$request->getUri();
+    }
+
+    /**
+     * Delete file from bucket.
+     *
+     * @param S3File $s3File
+     */
+    public function deleteFile($s3File) {
+        $this->getClientForFile($s3File);
+
+        $command = $this->s3->getCommand('DeleteObject', [
+            'Bucket' => $s3File->Bucket,
+            'Key'    => $s3File->Key
+        ]);
+
+        $this->s3->execute($command);
     }
 }

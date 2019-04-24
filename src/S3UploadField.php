@@ -1,6 +1,6 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use SilverStripe\Core\Convert;
 use SilverStripe\Forms\FormField;
@@ -9,7 +9,7 @@ use SilverStripe\View\Requirements;
 /**
  * Upload field for S3Files using dropzone.js
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class S3UploadField extends FormField {
 
@@ -32,6 +32,11 @@ class S3UploadField extends FormField {
      * @var int Max file size in MB, overrides the config value if set
      */
     protected $maxFileSize;
+
+    /**
+     * @var int Max duration in seconds until the XHR request is canceled, , overrides the config value if set.
+     */
+    protected $timeout;
 
     /**
      * List of accepted file types.
@@ -65,7 +70,8 @@ class S3UploadField extends FormField {
             'bucketUrl'       => $this->getBucketUrl(),
             'dropzoneOptions' => [
                 'maxFilesize'   => $this->getMaxFileSize(),
-                'acceptedFiles' => $this->getAcceptedFiles()
+                'acceptedFiles' => $this->getAcceptedFiles(),
+                'timeout'       => $this->getTimeout(),
             ],
             'settings'        => [
                 'bucket'     => $this->getBucket(),
@@ -135,6 +141,15 @@ class S3UploadField extends FormField {
             return implode(',', $accepted);
 
         return null;
+    }
+
+    /**
+     * Get the timeout for the dropzone component.
+     *
+     * @return mixed
+     */
+    public function getTimeout() {
+        return ($this->timeout ?: self::config()->get('timeout')) * 1000;
     }
 
     /**
@@ -231,6 +246,32 @@ class S3UploadField extends FormField {
      */
     public function setAllowedExtensions($extension) {
         return $this->setAcceptedFiles($extension);
+    }
+
+    /**
+     * Override the allowed max file size.
+     *
+     * @param int $maxFileSize In MB
+     *
+     * @return $this
+     */
+    public function setMaxFileSize($maxFileSize) {
+        $this->maxFileSize = $maxFileSize;
+
+        return $this;
+    }
+
+    /**
+     * Override the config timeout value for this field.
+     *
+     * @param int $timeout Timeout in seconds
+     *
+     * @return $this
+     */
+    public function setTimeout($timeout) {
+        $this->timeout = $timeout;
+
+        return $this;
     }
 
     // </editor-fold>

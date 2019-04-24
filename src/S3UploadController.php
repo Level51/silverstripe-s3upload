@@ -2,11 +2,10 @@
 
 namespace Level51\S3;
 
-use Lvl51\SMP\Security;
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Convert;
-use SilverStripe\Dev\Debug;
+use SilverStripe\Security\Security;
 
 /**
  * Controller for S3 file/upload specific actions.
@@ -28,7 +27,7 @@ class S3UploadController extends Controller {
     protected function init() {
         parent::init();
 
-        if (!Security::getCurrentUserID())
+        if (!Security::getCurrentUser())
             return $this->httpError(401);
     }
 

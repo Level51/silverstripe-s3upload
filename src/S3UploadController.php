@@ -1,6 +1,6 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use Lvl51\SMP\Security;
 use SilverStripe\Control\Controller;
@@ -13,7 +13,7 @@ use SilverStripe\Dev\Debug;
  *
  * Used to sign the upload request and handle the actual file creation after successful upload.
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class S3UploadController extends Controller {
 
@@ -49,7 +49,7 @@ class S3UploadController extends Controller {
     public function signRequest() {
         $request = $this->getRequest();
         $params = $request->getVars();
-        $conf = Config::forClass('Lvl51\S3\S3');
+        $conf = Config::forClass('Level51\S3\S3');
 
         $key = $conf->get('AccessId');
         $secret = $conf->get('Secret');

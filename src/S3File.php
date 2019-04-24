@@ -1,6 +1,6 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use Carbon\Carbon;
 use SilverStripe\Assets\File;
@@ -21,7 +21,7 @@ use SilverStripe\ORM\FieldType\DBDatetime;
  * @property string     $Type
  * @property DBDatetime $LastModified
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class S3File extends DataObject {
 

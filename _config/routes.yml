@@ -5,4 +5,4 @@ Before:
 ---
 SilverStripe\Control\Director:
   rules:
-    'admin/s3': 'Lvl51\S3\S3UploadController'
+    'admin/s3': 'Level51\S3\S3UploadController'

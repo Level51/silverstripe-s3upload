@@ -1,6 +1,6 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use Aws\Credentials\Credentials;
 use Aws\S3\S3Client;
@@ -8,7 +8,7 @@ use Aws\S3\S3Client;
 /**
  * Service class for s3 specific actions.
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class Service {
 

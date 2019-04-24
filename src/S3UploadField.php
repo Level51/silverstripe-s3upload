@@ -1,6 +1,6 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use SilverStripe\Core\Convert;
 use SilverStripe\Forms\FormField;
@@ -9,7 +9,7 @@ use SilverStripe\View\Requirements;
 /**
  * Upload field for S3Files using dropzone.js
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class S3UploadField extends FormField {
 

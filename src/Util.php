@@ -1,13 +1,13 @@
 <?php
 
-namespace Lvl51\S3;
+namespace Level51\S3;
 
 use SilverStripe\Core\Config\Config;
 
 /**
  * Util class for s3 specific tasks.
  *
- * @package Lvl51\S3
+ * @package Level51\S3
  */
 class Util {
 
@@ -15,7 +15,7 @@ class Util {
      * @return \SilverStripe\Core\Config\Config_ForClass
      */
     public static function config() {
-        return Config::forClass('Lvl51\S3\S3');
+        return Config::forClass('Level51\S3\S3');
     }
 
     /**

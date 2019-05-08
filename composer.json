@@ -32,7 +32,7 @@
   "minimum-stability": "dev",
   "autoload": {
     "psr-4": {
-      "Lvl51\\S3\\": "src/"
+      "Level51\\S3\\": "src/"
     }
   }
 }

@@ -111,7 +111,7 @@ export default {
       if (!this.file) return null;
       const { type } = this.file;
 
-      if (type.indexOf('video') > -1) return 'file-video';
+      if (type && type.indexOf('video') > -1) return 'file-video';
 
       return 'file';
     }

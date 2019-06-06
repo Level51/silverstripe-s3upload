@@ -69,15 +69,15 @@ class S3File extends DataObject {
      */
     public static function fromUpload($body) {
         $s3file = new self();
-        $s3file->Name = $body['name'];
+        $s3file->Name = isset($body['name']) ? $body['name'] : $body['Key'];
         $s3file->Size = $body['size'];
-        $s3file->Type = $body['type'];
+        $s3file->Type = isset($body['type']) && $body['type'] !== '' ? $body['type'] : null;
         $s3file->Region = $body['region'];
         $s3file->Location = $body['Location'];
         $s3file->Bucket = $body['Bucket'];
         $s3file->Key = $body['Key'];
         $s3file->ETag = str_replace('"', '', $body['ETag']);
-        $s3file->LastModified = Carbon::createFromTimestampMs($body['lastModified'])->toDateTimeString();
+        $s3file->LastModified = isset($body['lastModified']) ? Carbon::createFromTimestampMs($body['lastModified'])->toDateTimeString() : null;
         $s3file->write();
 
         return $s3file;

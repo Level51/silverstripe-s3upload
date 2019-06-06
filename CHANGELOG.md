@@ -1,6 +1,7 @@
 [Unreleased]
 ### Added
 - @babel/polyfill for IE support
+- webpack production config used for dist builds
 
 ### Changed
 - parse S3 XML response on the server side for IE support

@@ -4,6 +4,7 @@ namespace Level51\S3;
 
 use Carbon\Carbon;
 use SilverStripe\Assets\File;
+use SilverStripe\Core\Convert;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 
@@ -66,8 +67,14 @@ class S3File extends DataObject {
      *
      * @return S3File
      * @throws \SilverStripe\ORM\ValidationException
+     * @throws \Exception
      */
     public static function fromUpload($body) {
+
+        // Parse s3 xml response
+        if (isset($body['s3response']))
+            $body = array_merge($body, Convert::xml2array($body['s3response']));
+
         $s3file = new self();
         $s3file->Name = isset($body['name']) ? $body['name'] : $body['Key'];
         $s3file->Size = $body['size'];

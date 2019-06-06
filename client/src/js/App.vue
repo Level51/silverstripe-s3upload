@@ -130,14 +130,9 @@ export default {
         size: file.size,
         type: file.type,
         region: this.payload.settings.region,
-        lastModified: file.lastModified
+        lastModified: file.lastModified,
+        s3response: file.xhr.response
       };
-
-      // Read info from the s3 xml response
-      const xml = file.xhr.responseXML;
-      Object.values(xml.getElementsByTagName('PostResponse')[0].children).forEach((child) => {
-        data[child.tagName] = child.textContent;
-      });
 
       axios.post(
         `${location.origin}/admin/s3/uploaded`,

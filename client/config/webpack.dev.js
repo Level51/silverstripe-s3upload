@@ -8,7 +8,7 @@ const resolve = require('./webpack.resolve').forWebpack;
 module.exports = env => ({
 
   entry: {
-    s3upload: './client/src/js/S3FileUploadField.js'
+    s3upload: ['@babel/polyfill/noConflict', 'src/S3FileUploadField.js']
   },
 
   output: {

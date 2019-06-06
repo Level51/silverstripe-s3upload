@@ -1,4 +1,4 @@
-[Unreleased]
+[0.1.0] - 2019-06-06
 ### Added
 - @babel/polyfill for IE support
 - webpack production config used for dist builds

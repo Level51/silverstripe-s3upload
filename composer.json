@@ -1,7 +1,7 @@
 {
   "name": "level51/silverstripe-s3upload",
   "version": "0.1.0",
-  "time": "2019-04-04",
+  "time": "2019-06-06",
   "description": "SilverStripe module for file handling with S3",
   "keywords": [
     "silverstripe",

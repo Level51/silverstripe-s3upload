@@ -4,6 +4,7 @@ namespace Level51\S3;
 
 use Carbon\Carbon;
 use SilverStripe\Assets\File;
+use SilverStripe\Core\Convert;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 
@@ -66,18 +67,24 @@ class S3File extends DataObject {
      *
      * @return S3File
      * @throws \SilverStripe\ORM\ValidationException
+     * @throws \Exception
      */
     public static function fromUpload($body) {
+
+        // Parse s3 xml response
+        if (isset($body['s3response']))
+            $body = array_merge($body, Convert::xml2array($body['s3response']));
+
         $s3file = new self();
-        $s3file->Name = $body['name'];
+        $s3file->Name = isset($body['name']) ? $body['name'] : $body['Key'];
         $s3file->Size = $body['size'];
-        $s3file->Type = $body['type'];
+        $s3file->Type = isset($body['type']) && $body['type'] !== '' ? $body['type'] : null;
         $s3file->Region = $body['region'];
         $s3file->Location = $body['Location'];
         $s3file->Bucket = $body['Bucket'];
         $s3file->Key = $body['Key'];
         $s3file->ETag = str_replace('"', '', $body['ETag']);
-        $s3file->LastModified = Carbon::createFromTimestampMs($body['lastModified'])->toDateTimeString();
+        $s3file->LastModified = isset($body['lastModified']) ? Carbon::createFromTimestampMs($body['lastModified'])->toDateTimeString() : null;
         $s3file->write();
 
         return $s3file;

@@ -3,6 +3,9 @@ const path = require('path');
 const { VueLoaderPlugin } = require('vue-loader');
 const { DefinePlugin } = require('webpack');
 const MiniCSSExtractPlugin = require('mini-css-extract-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+
 const resolve = require('./webpack.resolve').forWebpack;
 
 module.exports = env => ({
@@ -17,9 +20,7 @@ module.exports = env => ({
     publicPath: '' // TODO check
   },
 
-  mode: 'development',
-
-  devtool: 'source-map',
+  mode: 'production',
 
   resolve,
 
@@ -103,8 +104,13 @@ module.exports = env => ({
 
     new VueLoaderPlugin(),
 
+    new OptimizeCssAssetsPlugin(),
     new MiniCSSExtractPlugin({
       filename: '[name].css'
-    })
+    }),
+
+    new CompressionPlugin({
+      algorithm: 'gzip'
+    }),
   ]
 });

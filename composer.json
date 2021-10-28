@@ -21,7 +21,7 @@
     "silverstripe/framework": "^4.3",
     "silverstripe/vendor-plugin": "^1.3@dev",
     "aws/aws-sdk-php": "^3.91",
-    "nesbot/carbon": "^1.36.2"
+    "nesbot/carbon": "^1|^2"
   },
   "extra": {
     "installer-name": "silverstripe-s3upload",

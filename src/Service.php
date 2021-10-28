@@ -54,14 +54,16 @@ class Service
      */
     private function getClientForFile($s3File)
     {
-        $this->s3 = new S3Client([
-                                     'credentials' => new Credentials(
-                                         $this->getAccessId(),
-                                         $this->getSecret()
-                                     ),
-                                     'region'      => $s3File->Region,
-                                     'version'     => 'latest'
-                                 ]);
+        $this->s3 = new S3Client(
+            [
+                'credentials' => new Credentials(
+                    $this->getAccessId(),
+                    $this->getSecret()
+                ),
+                'region'      => $s3File->Region,
+                'version'     => 'latest'
+            ]
+        );
     }
 
     /**

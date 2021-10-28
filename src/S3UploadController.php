@@ -4,7 +4,6 @@ namespace Level51\S3;
 
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
-use SilverStripe\Core\Convert;
 use SilverStripe\Security\Security;
 
 /**
@@ -105,21 +104,23 @@ class S3UploadController extends Controller
         $signingKey = hash_hmac('sha256', $requestType, $dateRegionServiceKey, true);
         $signature = hash_hmac('sha256', $base64Policy, $signingKey);
 
-        return Convert::array2json([
-                                       'signature'    => [
-                                           'key'                   => $filePath,
-                                           'Content-Type'          => $file['type'],
-                                           'acl'                   => 'private',
-                                           'success_action_status' => $successStatus,
-                                           'policy'                => $base64Policy,
-                                           'X-amz-algorithm'       => $algorithm,
-                                           'X-amz-credential'      => $credentials,
-                                           'X-amz-date'            => $date,
-                                           'X-amz-expires'         => $expires,
-                                           'X-amz-signature'       => $signature
-                                       ],
-                                       'postEndpoint' => Util::getBucketUrl($region, $bucket)
-                                   ]);
+        return json_encode(
+            [
+                'signature'    => [
+                    'key'                   => $filePath,
+                    'Content-Type'          => $file['type'],
+                    'acl'                   => 'private',
+                    'success_action_status' => $successStatus,
+                    'policy'                => $base64Policy,
+                    'X-amz-algorithm'       => $algorithm,
+                    'X-amz-credential'      => $credentials,
+                    'X-amz-date'            => $date,
+                    'X-amz-expires'         => $expires,
+                    'X-amz-signature'       => $signature
+                ],
+                'postEndpoint' => Util::getBucketUrl($region, $bucket)
+            ]
+        );
     }
 
     /**
@@ -130,12 +131,12 @@ class S3UploadController extends Controller
     public function handleFileUpload()
     {
         $request = $this->getRequest();
-        $body = Convert::json2array($request->getBody());
+        $body = json_decode($request->getBody(), true);
 
         try {
             $s3File = S3File::fromUpload($body);
 
-            return Convert::array2json($s3File->flatten());
+            return json_encode($s3File->flatten());
         } catch (\Exception $e) {
         }
     }

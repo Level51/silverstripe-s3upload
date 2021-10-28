@@ -2,7 +2,6 @@
 
 namespace Level51\S3;
 
-use SilverStripe\Core\Convert;
 use SilverStripe\Forms\FormField;
 use SilverStripe\View\Requirements;
 
@@ -64,24 +63,26 @@ class S3UploadField extends FormField
      */
     public function getPayload()
     {
-        return Convert::array2json([
-                                       'id'              => $this->ID(),
-                                       'name'            => $this->getName(),
-                                       'value'           => $this->Value(),
-                                       'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
-                                       'title'           => $this->Title(),
-                                       'bucketUrl'       => $this->getBucketUrl(),
-                                       'dropzoneOptions' => [
-                                           'maxFilesize'   => $this->getMaxFileSize(),
-                                           'acceptedFiles' => $this->getAcceptedFiles(),
-                                           'timeout'       => $this->getTimeout(),
-                                       ],
-                                       'settings'        => [
-                                           'bucket'     => $this->getBucket(),
-                                           'region'     => $this->getRegion(),
-                                           'folderName' => $this->getFolderName()
-                                       ]
-                                   ]);
+        return json_encode(
+            [
+                'id'              => $this->ID(),
+                'name'            => $this->getName(),
+                'value'           => $this->Value(),
+                'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
+                'title'           => $this->Title(),
+                'bucketUrl'       => $this->getBucketUrl(),
+                'dropzoneOptions' => [
+                    'maxFilesize'   => $this->getMaxFileSize(),
+                    'acceptedFiles' => $this->getAcceptedFiles(),
+                    'timeout'       => $this->getTimeout(),
+                ],
+                'settings'        => [
+                    'bucket'     => $this->getBucket(),
+                    'region'     => $this->getRegion(),
+                    'folderName' => $this->getFolderName()
+                ]
+            ]
+        );
     }
 
     // <editor-fold defaultstate="collapsed" desc="getter">

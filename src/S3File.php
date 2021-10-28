@@ -54,7 +54,7 @@ class S3File extends DataObject
             $this->Title = preg_replace('#[[:blank:]]+#', ' ', $this->Title);
         }
 
-        return parent::onBeforeWrite();
+        parent::onBeforeWrite();
     }
 
     protected function onAfterDelete()

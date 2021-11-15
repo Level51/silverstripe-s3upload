@@ -93,6 +93,17 @@ class Service
     }
 
     /**
+     * @param S3File $s3File
+     * @return string
+     */
+    public function getObjectUrl($s3File)
+    {
+        $this->getClientForFile($s3File);
+
+        return $this->s3->getObjectUrl($s3File->Bucket, $s3File->Key);
+    }
+
+    /**
      * Delete file from bucket.
      *
      * @param S3File $s3File

@@ -106,6 +106,14 @@ class S3File extends DataObject
     }
 
     /**
+     * @return string
+     */
+    public function getObjectUrl()
+    {
+        return Service::inst()->getObjectUrl($this);
+    }
+
+    /**
      * @return string File size in a human readable format
      */
     public function getSizeForHuman()

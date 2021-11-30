@@ -10,7 +10,8 @@ use Aws\S3\S3Client;
  *
  * @package Level51\S3
  */
-class Service {
+class Service
+{
 
     /**
      * @var Service
@@ -22,9 +23,11 @@ class Service {
      */
     private $s3;
 
-    public static function inst() {
-        if (self::$instance === null)
+    public static function inst()
+    {
+        if (self::$instance === null) {
             self::$instance = new self();
+        }
 
         return self::$instance;
     }
@@ -32,14 +35,16 @@ class Service {
     /**
      * @return string AWS accessId / key
      */
-    public function getAccessId() {
+    public function getAccessId()
+    {
         return Util::config()->get('AccessId');
     }
 
     /**
      * @return string AWS secret
      */
-    public function getSecret() {
+    public function getSecret()
+    {
         return Util::config()->get('Secret');
     }
 
@@ -47,25 +52,29 @@ class Service {
     /**
      * @param S3File $s3File
      */
-    private function getClientForFile($s3File) {
-        $this->s3 = new S3Client([
-            'credentials' => new Credentials(
-                $this->getAccessId(),
-                $this->getSecret()
-            ),
-            'region'      => $s3File->Region,
-            'version'     => 'latest'
-        ]);
+    private function getClientForFile($s3File)
+    {
+        $this->s3 = new S3Client(
+            [
+                'credentials' => new Credentials(
+                    $this->getAccessId(),
+                    $this->getSecret()
+                ),
+                'region'      => $s3File->Region,
+                'version'     => 'latest'
+            ]
+        );
     }
 
     /**
-     * @param S3File $s3File         File record
-     * @param int    $expiresIn      Time in minutes until the link gets invalid
+     * @param S3File $s3File File record
+     * @param int    $expiresIn Time in minutes until the link gets invalid
      * @param bool   $directDownload Whether the download should be triggered immediately or not
      *
      * @return string
      */
-    public function getTemporaryDownloadLink($s3File, $expiresIn = 60, $directDownload = true) {
+    public function getTemporaryDownloadLink($s3File, $expiresIn = 60, $directDownload = true)
+    {
         $this->getClientForFile($s3File);
 
         $params = [
@@ -73,8 +82,9 @@ class Service {
             'Key'    => $s3File->Key
         ];
 
-        if ($directDownload)
+        if ($directDownload) {
             $params['ResponseContentDisposition'] = 'attachment; filename="' . $s3File->Name . '"';
+        }
 
         $command = $this->s3->getCommand('GetObject', $params);
         $request = $this->s3->createPresignedRequest($command, "+$expiresIn minutes");
@@ -83,11 +93,23 @@ class Service {
     }
 
     /**
+     * @param S3File $s3File
+     * @return string
+     */
+    public function getObjectUrl($s3File)
+    {
+        $this->getClientForFile($s3File);
+
+        return $this->s3->getObjectUrl($s3File->Bucket, $s3File->Key);
+    }
+
+    /**
      * Delete file from bucket.
      *
      * @param S3File $s3File
      */
-    public function deleteFile($s3File) {
+    public function deleteFile($s3File)
+    {
         $this->getClientForFile($s3File);
 
         $command = $this->s3->getCommand('DeleteObject', [

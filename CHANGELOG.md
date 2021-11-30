@@ -1,3 +1,12 @@
+[0.1.1] - 2021-11-30
+### Added
+- getObjectUrl method
+
+### Changed
+- PHP Code reformat
+- Update npm dependencies
+- Update carbon dependency
+
 [0.1.0] - 2019-06-06
 ### Added
 - @babel/polyfill for IE support

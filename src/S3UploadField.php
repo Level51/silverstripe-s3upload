@@ -2,7 +2,6 @@
 
 namespace Level51\S3;
 
-use SilverStripe\Core\Convert;
 use SilverStripe\Forms\FormField;
 use SilverStripe\View\Requirements;
 
@@ -11,7 +10,8 @@ use SilverStripe\View\Requirements;
  *
  * @package Level51\S3
  */
-class S3UploadField extends FormField {
+class S3UploadField extends FormField
+{
 
     /**
      * @var string AWS region
@@ -48,7 +48,8 @@ class S3UploadField extends FormField {
      */
     protected $acceptedFiles;
 
-    public function Field($properties = array()) {
+    public function Field($properties = array())
+    {
         Requirements::javascript('level51/silverstripe-s3upload: client/dist/s3upload.js');
         Requirements::css('level51/silverstripe-s3upload: client/dist/s3upload.css');
 
@@ -60,25 +61,28 @@ class S3UploadField extends FormField {
      *
      * @return string
      */
-    public function getPayload() {
-        return Convert::array2json([
-            'id'              => $this->ID(),
-            'name'            => $this->getName(),
-            'value'           => $this->Value(),
-            'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
-            'title'           => $this->Title(),
-            'bucketUrl'       => $this->getBucketUrl(),
-            'dropzoneOptions' => [
-                'maxFilesize'   => $this->getMaxFileSize(),
-                'acceptedFiles' => $this->getAcceptedFiles(),
-                'timeout'       => $this->getTimeout(),
-            ],
-            'settings'        => [
-                'bucket'     => $this->getBucket(),
-                'region'     => $this->getRegion(),
-                'folderName' => $this->getFolderName()
+    public function getPayload()
+    {
+        return json_encode(
+            [
+                'id'              => $this->ID(),
+                'name'            => $this->getName(),
+                'value'           => $this->Value(),
+                'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
+                'title'           => $this->Title(),
+                'bucketUrl'       => $this->getBucketUrl(),
+                'dropzoneOptions' => [
+                    'maxFilesize'   => $this->getMaxFileSize(),
+                    'acceptedFiles' => $this->getAcceptedFiles(),
+                    'timeout'       => $this->getTimeout(),
+                ],
+                'settings'        => [
+                    'bucket'     => $this->getBucket(),
+                    'region'     => $this->getRegion(),
+                    'folderName' => $this->getFolderName()
+                ]
             ]
-        ]);
+        );
     }
 
     // <editor-fold defaultstate="collapsed" desc="getter">
@@ -88,7 +92,8 @@ class S3UploadField extends FormField {
      *
      * @return string URL
      */
-    public function getBucketUrl() {
+    public function getBucketUrl()
+    {
         return Util::getBucketUrl($this->getRegion(), $this->getBucket());
     }
 
@@ -97,7 +102,8 @@ class S3UploadField extends FormField {
      *
      * @return string
      */
-    public function getRegion() {
+    public function getRegion()
+    {
         return $this->region ?: self::config()->get('region');
     }
 
@@ -106,7 +112,8 @@ class S3UploadField extends FormField {
      *
      * @return string
      */
-    public function getBucket() {
+    public function getBucket()
+    {
         return $this->bucket ?: self::config()->get('bucket');
     }
 
@@ -115,7 +122,8 @@ class S3UploadField extends FormField {
      *
      * @return bool|string
      */
-    public function getFolderName() {
+    public function getFolderName()
+    {
         return $this->folderName ? $this->folderName . DIRECTORY_SEPARATOR : false;
     }
 
@@ -124,7 +132,8 @@ class S3UploadField extends FormField {
      *
      * @return int
      */
-    public function getMaxFileSize() {
+    public function getMaxFileSize()
+    {
         return $this->maxFileSize ?: self::config()->get('maxFileSize');
     }
 
@@ -133,12 +142,15 @@ class S3UploadField extends FormField {
      *
      * @return null|string
      */
-    public function getAcceptedFiles() {
-        if ($this->acceptedFiles)
+    public function getAcceptedFiles()
+    {
+        if ($this->acceptedFiles) {
             return implode(',', $this->acceptedFiles);
+        }
 
-        if ($accepted = self::config()->get('acceptedFiles'))
+        if ($accepted = self::config()->get('acceptedFiles')) {
             return implode(',', $accepted);
+        }
 
         return null;
     }
@@ -148,7 +160,8 @@ class S3UploadField extends FormField {
      *
      * @return mixed
      */
-    public function getTimeout() {
+    public function getTimeout()
+    {
         return ($this->timeout ?: self::config()->get('timeout')) * 1000;
     }
 
@@ -157,9 +170,11 @@ class S3UploadField extends FormField {
      *
      * @return null|\SilverStripe\ORM\DataObject|S3File
      */
-    public function getFile() {
-        if ($this->Value())
+    public function getFile()
+    {
+        if ($this->Value()) {
             return S3File::get()->byID($this->Value());
+        }
 
         return null;
     }
@@ -173,7 +188,8 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setRegion($region) {
+    public function setRegion($region)
+    {
         $this->region = $region;
 
         return $this;
@@ -184,7 +200,8 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setBucket($bucket) {
+    public function setBucket($bucket)
+    {
         $this->bucket = $bucket;
 
         return $this;
@@ -195,7 +212,8 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setFolderName($folderName) {
+    public function setFolderName($folderName)
+    {
         $this->folderName = trim($folderName, DIRECTORY_SEPARATOR);
 
         return $this;
@@ -208,14 +226,17 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function addAcceptedFile($extensionOrMimeType) {
+    public function addAcceptedFile($extensionOrMimeType)
+    {
         // Check for extensions without leading . - add it if necessary
         if (strpos($extensionOrMimeType, '/') === false
-            && $extensionOrMimeType[0] !== '.')
+            && $extensionOrMimeType[0] !== '.') {
             $extensionOrMimeType = '.' . $extensionOrMimeType;
+        }
 
-        if (!$this->acceptedFiles)
+        if (!$this->acceptedFiles) {
             $this->acceptedFiles = [];
+        }
 
         $this->acceptedFiles[] = $extensionOrMimeType;
 
@@ -229,8 +250,11 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setAcceptedFiles($accepted) {
-        if (is_string($accepted)) $accepted = [$accepted];
+    public function setAcceptedFiles($accepted)
+    {
+        if (is_string($accepted)) {
+            $accepted = [$accepted];
+        }
 
         foreach ($accepted as $extensionOrMimeType) {
             $this->addAcceptedFile($extensionOrMimeType);
@@ -244,7 +268,8 @@ class S3UploadField extends FormField {
      *
      * @return S3UploadField
      */
-    public function setAllowedExtensions($extension) {
+    public function setAllowedExtensions($extension)
+    {
         return $this->setAcceptedFiles($extension);
     }
 
@@ -255,7 +280,8 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setMaxFileSize($maxFileSize) {
+    public function setMaxFileSize($maxFileSize)
+    {
         $this->maxFileSize = $maxFileSize;
 
         return $this;
@@ -268,7 +294,8 @@ class S3UploadField extends FormField {
      *
      * @return $this
      */
-    public function setTimeout($timeout) {
+    public function setTimeout($timeout)
+    {
         $this->timeout = $timeout;
 
         return $this;

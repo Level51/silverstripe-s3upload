@@ -4,7 +4,6 @@ namespace Level51\S3;
 
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
-use SilverStripe\Core\Convert;
 use SilverStripe\Security\Security;
 
 /**
@@ -14,7 +13,8 @@ use SilverStripe\Security\Security;
  *
  * @package Level51\S3
  */
-class S3UploadController extends Controller {
+class S3UploadController extends Controller
+{
 
     private static $allowed_actions = ['signRequest', 'handleFileUpload', 'removeFile'];
 
@@ -24,11 +24,13 @@ class S3UploadController extends Controller {
         'remove/$ID!' => 'removeFile'
     ];
 
-    protected function init() {
+    protected function init()
+    {
         parent::init();
 
-        if (!Security::getCurrentUser())
+        if (!Security::getCurrentUser()) {
             return $this->httpError(401);
+        }
     }
 
     /**
@@ -45,7 +47,8 @@ class S3UploadController extends Controller {
      *
      * @return string
      */
-    public function signRequest() {
+    public function signRequest()
+    {
         $request = $this->getRequest();
         $params = $request->getVars();
         $conf = Config::forClass('Level51\S3\S3');
@@ -101,21 +104,23 @@ class S3UploadController extends Controller {
         $signingKey = hash_hmac('sha256', $requestType, $dateRegionServiceKey, true);
         $signature = hash_hmac('sha256', $base64Policy, $signingKey);
 
-        return Convert::array2json([
-            'signature'    => [
-                'key'                   => $filePath,
-                'Content-Type'          => $file['type'],
-                'acl'                   => 'private',
-                'success_action_status' => $successStatus,
-                'policy'                => $base64Policy,
-                'X-amz-algorithm'       => $algorithm,
-                'X-amz-credential'      => $credentials,
-                'X-amz-date'            => $date,
-                'X-amz-expires'         => $expires,
-                'X-amz-signature'       => $signature
-            ],
-            'postEndpoint' => Util::getBucketUrl($region, $bucket)
-        ]);
+        return json_encode(
+            [
+                'signature'    => [
+                    'key'                   => $filePath,
+                    'Content-Type'          => $file['type'],
+                    'acl'                   => 'private',
+                    'success_action_status' => $successStatus,
+                    'policy'                => $base64Policy,
+                    'X-amz-algorithm'       => $algorithm,
+                    'X-amz-credential'      => $credentials,
+                    'X-amz-date'            => $date,
+                    'X-amz-expires'         => $expires,
+                    'X-amz-signature'       => $signature
+                ],
+                'postEndpoint' => Util::getBucketUrl($region, $bucket)
+            ]
+        );
     }
 
     /**
@@ -123,16 +128,16 @@ class S3UploadController extends Controller {
      *
      * @return string
      */
-    public function handleFileUpload() {
+    public function handleFileUpload()
+    {
         $request = $this->getRequest();
-        $body = Convert::json2array($request->getBody());
+        $body = json_decode($request->getBody(), true);
 
         try {
             $s3File = S3File::fromUpload($body);
 
-            return Convert::array2json($s3File->flatten());
+            return json_encode($s3File->flatten());
         } catch (\Exception $e) {
-
         }
     }
 
@@ -141,15 +146,18 @@ class S3UploadController extends Controller {
      *
      * @return mixed
      */
-    public function removeFile() {
+    public function removeFile()
+    {
         $request = $this->getRequest();
 
         if (!$request->param('ID') ||
-            !($file = S3File::get()->byID($request->param('ID'))))
+            !($file = S3File::get()->byID($request->param('ID')))) {
             return $this->httpError(404);
+        }
 
-        if (!$file->canDelete())
+        if (!$file->canDelete()) {
             return $this->httpError(403);
+        }
 
         $file->delete();
     }

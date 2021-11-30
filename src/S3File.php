@@ -24,7 +24,8 @@ use SilverStripe\ORM\FieldType\DBDatetime;
  *
  * @package Level51\S3
  */
-class S3File extends DataObject {
+class S3File extends DataObject
+{
 
     private static $table_name = 'S3File';
 
@@ -41,7 +42,8 @@ class S3File extends DataObject {
         'LastModified' => DBDatetime::class
     ];
 
-    protected function onBeforeWrite() {
+    protected function onBeforeWrite()
+    {
         // If no title provided, reformat filename
         if (!$this->Title) {
             // Strip the extension
@@ -52,10 +54,11 @@ class S3File extends DataObject {
             $this->Title = preg_replace('#[[:blank:]]+#', ' ', $this->Title);
         }
 
-        return parent::onBeforeWrite();
+        parent::onBeforeWrite();
     }
 
-    protected function onAfterDelete() {
+    protected function onAfterDelete()
+    {
         parent::onAfterDelete();
 
         // Trigger delete on s3 side
@@ -69,11 +72,12 @@ class S3File extends DataObject {
      * @throws \SilverStripe\ORM\ValidationException
      * @throws \Exception
      */
-    public static function fromUpload($body) {
-
+    public static function fromUpload($body)
+    {
         // Parse s3 xml response
-        if (isset($body['s3response']))
+        if (isset($body['s3response'])) {
             $body = array_merge($body, Convert::xml2array($body['s3response']));
+        }
 
         $s3file = new self();
         $s3file->Name = isset($body['name']) ? $body['name'] : $body['Key'];
@@ -91,19 +95,29 @@ class S3File extends DataObject {
     }
 
     /**
-     * @param int  $expiresIn      Time in minutes until the link gets invalid
+     * @param int  $expiresIn Time in minutes until the link gets invalid
      * @param bool $directDownload Whether the download should be triggered immediately or not
      *
      * @return string
      */
-    public function getTemporaryDownloadLink($expiresIn = 60, $directDownload = true) {
+    public function getTemporaryDownloadLink($expiresIn = 60, $directDownload = true)
+    {
         return Service::inst()->getTemporaryDownloadLink($this, $expiresIn, $directDownload);
+    }
+
+    /**
+     * @return string
+     */
+    public function getObjectUrl()
+    {
+        return Service::inst()->getObjectUrl($this);
     }
 
     /**
      * @return string File size in a human readable format
      */
-    public function getSizeForHuman() {
+    public function getSizeForHuman()
+    {
         return File::format_size($this->Size);
     }
 
@@ -112,7 +126,8 @@ class S3File extends DataObject {
      *
      * @return array
      */
-    public function flatten() {
+    public function flatten()
+    {
         return [
             'id'       => $this->ID,
             'title'    => $this->Title,

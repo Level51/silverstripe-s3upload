@@ -51,8 +51,10 @@ class Service
 
     /**
      * @param S3File $s3File
+     *
+     * @return S3Client
      */
-    private function getClientForFile($s3File)
+    public function getClientForFile($s3File)
     {
         $this->s3 = new S3Client(
             [
@@ -64,6 +66,8 @@ class Service
                 'version'     => 'latest'
             ]
         );
+
+        return $this->s3;
     }
 
     /**

@@ -1,3 +1,7 @@
+[0.1.2] - 2021-12-01
+### Added
+- Methods to use the s3 client outside of the module
+
 [0.1.1] - 2021-11-30
 ### Added
 - getObjectUrl method

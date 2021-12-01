@@ -2,6 +2,7 @@
 
 namespace Level51\S3;
 
+use Aws\S3\S3Client;
 use Carbon\Carbon;
 use SilverStripe\Assets\File;
 use SilverStripe\Core\Convert;
@@ -103,6 +104,14 @@ class S3File extends DataObject
     public function getTemporaryDownloadLink($expiresIn = 60, $directDownload = true)
     {
         return Service::inst()->getTemporaryDownloadLink($this, $expiresIn, $directDownload);
+    }
+
+    /**
+     * @return S3Client
+     */
+    public function getS3Client()
+    {
+        return Service::inst()->getClientForFile($this);
     }
 
     /**

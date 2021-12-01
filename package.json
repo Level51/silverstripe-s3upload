@@ -1,6 +1,6 @@
 {
   "name": "silverstripe-s3upload",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "SilverStripe module for file handling with S3",
   "scripts": {
     "dev": "webpack --config=client/config/webpack.dev.js --env.NODE_ENV=development",

@@ -4,6 +4,7 @@ namespace Level51\S3;
 
 use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Security;
 
 /**
@@ -136,6 +137,16 @@ class S3UploadController extends Controller
         try {
             $s3File = S3File::fromUpload($body);
 
+            // Check if there is a callback defined, trigger if the record and method exists
+            if (isset($body['customPayload']['recordCreateCallback'])) {
+                $callback = $body['customPayload']['recordCreateCallback'];
+                $record = DataObject::get($callback['class'])->byID($callback['id']);
+
+                if ($record && $record->hasMethod($callback['method'])) {
+                    $record->{$callback['method']}($s3File, $body);
+                }
+            }
+
             return json_encode($s3File->flatten());
         } catch (\Exception $e) {
         }
@@ -149,6 +160,7 @@ class S3UploadController extends Controller
     public function removeFile()
     {
         $request = $this->getRequest();
+        $body = json_decode($request->getBody(), true);
 
         if (!$request->param('ID') ||
             !($file = S3File::get()->byID($request->param('ID')))) {
@@ -159,6 +171,23 @@ class S3UploadController extends Controller
             return $this->httpError(403);
         }
 
-        $file->delete();
+        $cancelDeletion = false;
+        // Check if there is a callback defined, trigger if the record and method exists
+        if (isset($body['customPayload']['recordDeleteCallback'])) {
+            $callback = $body['customPayload']['recordDeleteCallback'];
+            $record = DataObject::get($callback['class'])->byID($callback['id']);
+
+            if ($record && $record->hasMethod($callback['method'])) {
+                $response = $record->{$callback['method']}($file, $body);
+
+                if ($response && $response === false) {
+                    $cancelDeletion = true;
+                }
+            }
+        }
+
+        if (!$cancelDeletion) {
+            $file->delete();
+        }
     }
 }

@@ -131,7 +131,8 @@ export default {
         type: file.type,
         region: this.payload.settings.region,
         lastModified: file.lastModified,
-        s3response: file.xhr.response
+        s3response: file.xhr.response,
+        customPayload: this.payload.customPayload
       };
 
       axios.post(
@@ -145,8 +146,11 @@ export default {
       });
     },
     removeFile() {
-      axios.delete(
-        `${location.origin}/admin/s3/remove/${this.file.id}`
+      axios.post(
+        `${location.origin}/admin/s3/remove/${this.file.id}`,
+        {
+          customPayload: this.payload.customPayload
+        }
       ).then((response) => {
         this.file = null;
       });

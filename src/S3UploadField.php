@@ -48,6 +48,13 @@ class S3UploadField extends FormField
      */
     protected $acceptedFiles;
 
+    /**
+     * Custom payload passed to the handleFileUpload method of the upload controller.
+     *
+     * @var array
+     */
+    protected $customPayload = [];
+
     public function Field($properties = array())
     {
         Requirements::javascript('level51/silverstripe-s3upload: client/dist/s3upload.js');
@@ -80,7 +87,8 @@ class S3UploadField extends FormField
                     'bucket'     => $this->getBucket(),
                     'region'     => $this->getRegion(),
                     'folderName' => $this->getFolderName()
-                ]
+                ],
+                'customPayload'   => $this->getCustomPayload()
             ]
         );
     }
@@ -177,6 +185,16 @@ class S3UploadField extends FormField
         }
 
         return null;
+    }
+
+    /**
+     * Get any kind of custom payload.
+     *
+     * @return array
+     */
+    public function getCustomPayload()
+    {
+        return $this->customPayload;
     }
 
     // </editor-fold>
@@ -297,6 +315,72 @@ class S3UploadField extends FormField
     public function setTimeout($timeout)
     {
         $this->timeout = $timeout;
+
+        return $this;
+    }
+
+    /**
+     * Set some custom payload.
+     *
+     * Will override any existing custom payload.
+     *
+     * @param array $payload
+     * @return $this
+     */
+    public function setCustomPayload($payload)
+    {
+        $this->customPayload = $payload;
+
+        return $this;
+    }
+
+    /**
+     * Add something to the custom payload array.
+     *
+     * @param array $payload
+     * @return $this
+     */
+    public function addCustomPayload($payload)
+    {
+        $this->customPayload = array_merge_recursive($this->customPayload, $payload);
+
+        return $this;
+    }
+
+    /**
+     * Set a callback triggered on the given record after successful S3File creation.
+     *
+     * @param string $class e.g. My\Namespaced\DataObject
+     * @param int    $id
+     * @param string $method
+     * @return $this
+     */
+    public function setRecordCreateCallback($class, $id, $method = 'onAfterS3FileCreate')
+    {
+        $this->customPayload['recordCreateCallback'] = [
+            'class'  => $class,
+            'id'     => $id,
+            'method' => $method
+        ];
+
+        return $this;
+    }
+
+    /**
+     * Set a callback griggered on the given record during S3File deletion.
+     *
+     * @param string $class e.g. My\Namespaced\DataObject
+     * @param int    $id
+     * @param string $method
+     * @return $this
+     */
+    public function setRecordDeleteCallback($class, $id, $method = 'onBeforeS3FileDelete')
+    {
+        $this->customPayload['recordDeleteCallback'] = [
+            'class'  => $class,
+            'id'     => $id,
+            'method' => $method
+        ];
 
         return $this;
     }

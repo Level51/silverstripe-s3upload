@@ -32,9 +32,39 @@ class Util
         if ($region == 'us-east-1') {
             $region = '';
         } else {
-            $region = "-$region";
+            $region = ".$region";
         }
 
-        return "https://$bucket.s3$region.amazonaws.com/";
+        $host = 'amazonaws.com';
+        $protocol = 'https';
+        $usePathStyleSyntax = false;
+
+        if ($clientOptions = self::config()->get('client_options')) {
+            if (isset($clientOptions['endpoint'])) {
+                $urlParts = parse_url($clientOptions['endpoint']);
+
+                if (isset($urlParts['scheme'])) {
+                    $protocol = $urlParts['scheme'];
+                }
+
+                if (isset($urlParts['host'])) {
+                    $host = $urlParts['host'];
+
+                    if (isset($urlParts['port'])) {
+                        $host .= ':' . $urlParts['port'];
+                    }
+                }
+            }
+
+            if (isset($clientOptions['use_path_style_endpoint']) && $clientOptions['use_path_style_endpoint'] === true) {
+                $usePathStyleSyntax = true;
+            }
+        }
+
+        if ($usePathStyleSyntax) {
+            return "$protocol://s3$region.$host/$bucket";
+        }
+
+        return "$protocol://$bucket.s3$region.$host/";
     }
 }

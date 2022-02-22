@@ -56,16 +56,20 @@ class Service
      */
     public function getClientForFile($s3File)
     {
-        $this->s3 = new S3Client(
-            [
-                'credentials' => new Credentials(
-                    $this->getAccessId(),
-                    $this->getSecret()
-                ),
-                'region'      => $s3File->Region,
-                'version'     => 'latest'
-            ]
-        );
+        $options = [
+            'credentials' => new Credentials(
+                $this->getAccessId(),
+                $this->getSecret()
+            ),
+            'region'      => $s3File->Region,
+            'version'     => 'latest'
+        ];
+
+        if ($customOptions = Util::config()->get('client_options')) {
+            $options = array_merge_recursive($options, $customOptions);
+        }
+
+        $this->s3 = new S3Client($options);
 
         return $this->s3;
     }

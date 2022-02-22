@@ -101,7 +101,10 @@ export default {
         ...this.payload.dropzoneOptions,
         url: `${location.origin}/admin/s3`,
         maxFiles: 1,
-        autoProcessQueue: false
+        autoProcessQueue: false,
+        headers: {
+          'X-Requested-With': null
+        }
       };
     },
     value() {

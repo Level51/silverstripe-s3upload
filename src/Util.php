@@ -3,6 +3,7 @@
 namespace Level51\S3;
 
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Config\Config_ForClass;
 
 /**
  * Util class for s3 specific tasks.
@@ -11,13 +12,12 @@ use SilverStripe\Core\Config\Config;
  */
 class Util
 {
-
     /**
-     * @return \SilverStripe\Core\Config\Config_ForClass
+     * @return Config_ForClass
      */
-    public static function config()
+    public static function config(): Config_ForClass
     {
-        return Config::forClass('Level51\S3\S3');
+        return Config::forClass('Level51\S3');
     }
 
     /**
@@ -26,7 +26,7 @@ class Util
      *
      * @return string
      */
-    public static function getBucketUrl($region, $bucket)
+    public static function getBucketUrl(string $region, string $bucket): string
     {
         // US general doesn't have its name in the bucket URL
         if ($region == 'us-east-1') {

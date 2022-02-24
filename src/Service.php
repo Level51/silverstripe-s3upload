@@ -3,7 +3,9 @@
 namespace Level51\S3;
 
 use Aws\Credentials\Credentials;
-use Aws\S3\S3Client;
+use Aws\S3\S3MultiRegionClient;
+use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Injector\Injectable;
 
 /**
  * Service class for s3 specific actions.
@@ -12,30 +14,33 @@ use Aws\S3\S3Client;
  */
 class Service
 {
+    use Injectable;
+    use Configurable;
 
-    /**
-     * @var Service
-     */
-    private static $instance = null;
+    private S3MultiRegionClient $s3;
 
-    /**
-     * @var S3Client
-     */
-    private $s3;
-
-    public static function inst()
+    public function __construct()
     {
-        if (self::$instance === null) {
-            self::$instance = new self();
+        $options = [
+            'credentials' => new Credentials(
+                $this->getAccessId(),
+                $this->getSecret()
+            ),
+            'version'     => 'latest',
+            'region'      => $this->getDefaultRegion(),
+        ];
+
+        if ($customOptions = Util::config()->get('client_options')) {
+            $options = array_merge_recursive($options, $customOptions);
         }
 
-        return self::$instance;
+        $this->s3 = new S3MultiRegionClient($options);
     }
 
     /**
      * @return string AWS accessId / key
      */
-    public function getAccessId()
+    public function getAccessId(): string
     {
         return Util::config()->get('AccessId');
     }
@@ -43,34 +48,24 @@ class Service
     /**
      * @return string AWS secret
      */
-    public function getSecret()
+    public function getSecret(): string
     {
         return Util::config()->get('Secret');
     }
 
+    /**
+     * @return string Default region to use if not specified other.
+     */
+    public function getDefaultRegion(): string
+    {
+        return Util::config()->get('default_region');
+    }
 
     /**
-     * @param S3File $s3File
-     *
-     * @return S3Client
+     * @return S3MultiRegionClient
      */
-    public function getClientForFile($s3File)
+    public function getClient(): S3MultiRegionClient
     {
-        $options = [
-            'credentials' => new Credentials(
-                $this->getAccessId(),
-                $this->getSecret()
-            ),
-            'region'      => $s3File->Region,
-            'version'     => 'latest'
-        ];
-
-        if ($customOptions = Util::config()->get('client_options')) {
-            $options = array_merge_recursive($options, $customOptions);
-        }
-
-        $this->s3 = new S3Client($options);
-
         return $this->s3;
     }
 
@@ -81,13 +76,12 @@ class Service
      *
      * @return string
      */
-    public function getTemporaryDownloadLink($s3File, $expiresIn = 60, $directDownload = true)
+    public function getTemporaryDownloadLink(S3File $s3File, int $expiresIn = 60, bool $directDownload = true): string
     {
-        $this->getClientForFile($s3File);
-
         $params = [
             'Bucket' => $s3File->Bucket,
-            'Key'    => $s3File->Key
+            'Key'    => $s3File->Key,
+            'Region' => $s3File->Region
         ];
 
         if ($directDownload) {
@@ -104,10 +98,8 @@ class Service
      * @param S3File $s3File
      * @return string
      */
-    public function getObjectUrl($s3File)
+    public function getObjectUrl(S3File $s3File): string
     {
-        $this->getClientForFile($s3File);
-
         return $this->s3->getObjectUrl($s3File->Bucket, $s3File->Key);
     }
 
@@ -116,15 +108,31 @@ class Service
      *
      * @param S3File $s3File
      */
-    public function deleteFile($s3File)
+    public function deleteFile(S3File $s3File)
     {
-        $this->getClientForFile($s3File);
-
         $command = $this->s3->getCommand('DeleteObject', [
             'Bucket' => $s3File->Bucket,
-            'Key'    => $s3File->Key
+            'Key'    => $s3File->Key,
+            'Region' => $s3File->Region,
         ]);
 
         $this->s3->execute($command);
+    }
+
+    /**
+     * Get file information for a specific key.
+     *
+     * @param string $bucket
+     * @param string $key
+     * @return array
+     */
+    public function headObject(string $bucket, string $key): array
+    {
+        $command = $this->s3->getCommand('HeadObject', [
+            'Bucket' => $bucket,
+            'Key'    => $key
+        ]);
+
+        return $this->s3->execute($command)->toArray();
     }
 }

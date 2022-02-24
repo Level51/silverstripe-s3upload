@@ -1,23 +1,14 @@
 <template>
   <div class="s3-file-upload-component">
-    <div
-      v-if="message"
-      class="message"
-      :class="[message.type]">
-      {{ message.message }}
-    </div>
-
-    <template v-if="!file">
-      <vue2-dropzone
-        :awss3="aws"
-        :options="options"
-        :id="`dropzone-${payload.id}`"
-        ref="dropzone"
-        @vdropzone-file-added="fileAdded"
-        @vdropzone-s3-upload-error="uploadError"
-        @vdropzone-success="successEvent"
-        @vdropzone-error="errorEvent" />
-    </template>
+    <file-pond
+      v-if="!file"
+      :name="payload.name"
+      lable-idle="Drop files here to upload"
+      :allow-multiple="false"
+      :accepted-file-types="payload.uploaderOptions.acceptedFiles"
+      :server="filepondServerConfig"
+      :max-file-size="maxFileSize"
+    />
 
     <div
       v-else
@@ -55,58 +46,33 @@
 </template>
 
 <script>
-import vue2Dropzone from 'vue2-dropzone';
-import qs from 'qs';
+import vueFilePond from 'vue-filepond';
+import 'filepond/dist/filepond.min.css';
+import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
+import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
 import axios from 'axios';
+import qs from 'qs';
 import 'src/icons';
+
+const FilePond = vueFilePond(FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
 
 export default {
   props: {
     payload: {
       type: Object,
-      required: true
-    }
+      required: true,
+    },
   },
   data() {
     return {
       file: null,
-      message: null,
-      processTimeout: null
     };
   },
-  components: { vue2Dropzone },
+  components: { FilePond },
   created() {
     if (this.payload.file) this.file = this.payload.file;
   },
   computed: {
-    aws() {
-      const vm = this;
-      return {
-        signingURL(file) {
-          const settings = {
-            ...vm.payload.settings,
-            file: {
-              name: file.name,
-              type: file.type
-            }
-          };
-
-          return `${location.origin}/admin/s3/sign?${qs.stringify(settings)}`;
-        },
-        sendFileToServer: false
-      };
-    },
-    options() {
-      return {
-        ...this.payload.dropzoneOptions,
-        url: `${location.origin}/admin/s3`,
-        maxFiles: 1,
-        autoProcessQueue: false,
-        headers: {
-          'X-Requested-With': null
-        }
-      };
-    },
     value() {
       return this.file ? this.file.id : 0;
     },
@@ -117,36 +83,88 @@ export default {
       if (type && type.indexOf('video') > -1) return 'file-video';
 
       return 'file';
+    },
+    filepondServerConfig() {
+      return {
+        process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+          const requestController = new AbortController();
+
+          this.process(file, metadata, load, error, progress, requestController);
+
+          return {
+            abort: () => {
+              requestController.abort();
+              abort();
+            }
+          };
+        },
+        revert: null,
+        restore: null,
+        load: null,
+        fetch: null,
+      };
+    },
+    maxFileSize() {
+      return this.payload?.uploaderOptions?.maxFilesize ? `${this.payload.uploaderOptions.maxFilesize}MB` : null;
     }
   },
   methods: {
-    uploadError(message) {
-      this.message = {
-        type: 'error',
-        message
-      };
-    },
-    successEvent(file) {
-      // Get basic file info
-      const data = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        region: this.payload.settings.region,
-        lastModified: file.lastModified,
-        s3response: file.xhr.response,
-        customPayload: this.payload.customPayload
-      };
+    async process(file, metadata, load, error, progress, requestController) {
+      try {
+        const presignedUrlParams = {
+          ...this.payload.settings,
+          file: {
+            name: file.name,
+            type: file.type,
+          }
+        };
 
-      axios.post(
-        `${location.origin}/admin/s3/uploaded`,
-        data
-      ).then((sR) => {
-        this.file = sR.data;
-      }).catch((err) => {
-        // TODO error handling
-        console.warn('server error', err);
-      });
+        const presignedUrl = (await axios.post(`${location.origin}/admin/s3/sign?${qs.stringify(presignedUrlParams)}`, null, {
+          signal: requestController.signal,
+        })).data;
+
+        const awsResponse = await axios.put(presignedUrl, file, {
+          headers: {
+            'Content-Type': file.type
+          },
+          signal: requestController.signal,
+          onUploadProgress: (progressEvent) => {
+            progress(true, progressEvent.loaded, progressEvent.total);
+          }
+        });
+
+        const urlParts = (new URL(presignedUrl)).pathname.slice(1).split('/');
+        const bucket = urlParts.shift();
+        const key = urlParts.join('/');
+
+        const fileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          region: this.payload.settings.region,
+          lastModified: file.lastModified,
+          customPayload: this.payload.customPayload,
+          bucket,
+          key,
+        };
+
+        const fileCreateResponse = await axios.post(
+          `${location.origin}/admin/s3/uploaded`,
+          fileData,
+          {
+            signal: requestController.signal,
+          }
+        );
+
+        this.file = fileCreateResponse.data;
+        load();
+      } catch (e) {
+        if (e?.response?.data && typeof e.response.data === 'string') {
+          error(e.response.data);
+        } else {
+          error(e.message);
+        }
+      }
     },
     removeFile() {
       axios.post(
@@ -158,26 +176,6 @@ export default {
         this.file = null;
       });
     },
-    handleUpload() {
-      this.processTimeout = setTimeout(() => {
-        this.$refs.dropzone.processQueue();
-      }, 100);
-    },
-    fileAdded() {
-      this.message = null;
-      this.handleUpload();
-    },
-    errorEvent(file, message, xhr) {
-      this.message = {
-        type: 'error',
-        message
-      };
-
-      if (xhr) console.log(xhr);
-
-      this.$refs.dropzone.removeAllFiles();
-      clearTimeout(this.processTimeout);
-    }
   }
 };
 </script>
@@ -188,67 +186,6 @@ export default {
 .s3-file-upload-component {
   .s3-file-upload-muted {
     color: @color-mono-50;
-  }
-
-  .s3-file-upload-message {
-    width: 100%;
-    padding: @space-1;
-    border: 1px solid;
-
-    &.s3-file-upload-message-error {
-      border-color: @color-error;
-    }
-  }
-
-  .vue-dropzone {
-    border: 2px dashed @color-border;
-    border-radius: @border-radius;
-    background: @color-mono-100;
-    padding: @space-2;
-    height: 68px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    &.dz-clickable {
-      cursor: pointer;
-    }
-
-    &.dz-drag-hover {
-      box-shadow: 0 0 10px inset @color-border;
-    }
-
-    &.dz-started {
-      .dz-message {
-        display: none;
-      }
-    }
-
-    .dz-preview {
-      .dz-image, .dz-success-mark, .dz-error-mark {
-        display: none;
-      }
-      .dz-details {
-        display: flex;
-
-        .dz-size {
-          margin-right: @space-2;
-        }
-      }
-      .dz-progress {
-        width: 100%;
-        height: 5px;
-        position: relative;
-
-        .dz-upload {
-          position: absolute;
-          top: 0;
-          left: 0;
-          background: @color-success;
-          height: 100%;
-        }
-      }
-    }
   }
 
   .s3-file-upload-preview {

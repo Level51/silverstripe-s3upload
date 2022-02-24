@@ -2,8 +2,10 @@
 
 namespace Level51\S3;
 
+use Exception;
+use Psr\Container\NotFoundExceptionInterface;
 use SilverStripe\Control\Controller;
-use SilverStripe\Core\Config\Config;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Security\Security;
 
@@ -16,7 +18,6 @@ use SilverStripe\Security\Security;
  */
 class S3UploadController extends Controller
 {
-
     private static $allowed_actions = ['signRequest', 'handleFileUpload', 'removeFile'];
 
     private static $url_handlers = [
@@ -35,93 +36,36 @@ class S3UploadController extends Controller
     }
 
     /**
-     * Sign the upload request for the given params.
+     * Create a presigned upload url.
      *
-     * The postVars have to contain:
-     *   bucket: string,
-     *   region: string,
-     *   file: [
-     *     name: string,
-     *     type: string
-     *   ],
-     *   folderName: string (optional)
+     * @see https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/s3-presigned-url.html
      *
      * @return string
+     * @throws NotFoundExceptionInterface
      */
-    public function signRequest()
+    public function signRequest(): string
     {
+        /** @var Service $service */
+        $service = Injector::inst()->get(Service::class);
+        $client = $service->getClient();
+
         $request = $this->getRequest();
         $params = $request->getVars();
-        $conf = Config::forClass('Level51\S3\S3');
-
-        $key = $conf->get('AccessId');
-        $secret = $conf->get('Secret');
         $bucket = $params['bucket'];
-        $region = $params['region'];
 
         $file = $params['file'];
         $fileName = uniqid('', true);
         $fileName .= '.' . pathinfo($file['name'])['extension'];
         $filePath = $params['folderName'] ? $params['folderName'] . $fileName : $fileName;
 
-        // Set som defaults
-        $algorithm = "AWS4-HMAC-SHA256";
-        $service = "s3";
-        $date = gmdate('Ymd\THis\Z');
-        $shortDate = gmdate('Ymd');
-        $requestType = "aws4_request";
-        $expires = "" . 60 * 60; // This request will be valid for an hour
-        $successStatus = '201';
+        $cmd = $client->getCommand('PutObject', [
+            'Bucket' => $bucket,
+            'Key'    => $filePath
+        ]);
 
-        $scope = [
-            $key,
-            $shortDate,
-            $region,
-            $service,
-            $requestType
-        ];
-        $credentials = implode('/', $scope);
+        $awsRequest = $client->createPresignedRequest($cmd, '+20 minutes');
 
-        // Tells AWS under which condition this request will be valid
-        $policy = [
-            'expiration' => gmdate('Y-m-d\TG:i:s\Z', strtotime('+1 hours')),
-            'conditions' => [
-                ['bucket' => $bucket],
-                ['acl' => 'private'],
-                ['starts-with', '$key', $filePath],
-                ['starts-with', '$Content-Type', $file['type']],
-                ['success_action_status' => $successStatus],
-                ['x-amz-credential' => $credentials],
-                ['x-amz-algorithm' => $algorithm],
-                ['x-amz-date' => $date],
-                ['x-amz-expires' => $expires],
-            ]
-        ];
-
-        $base64Policy = base64_encode(json_encode($policy));
-        $dateKey = hash_hmac('sha256', $shortDate, 'AWS4' . $secret, true);
-        $dateRegionKey = hash_hmac('sha256', $region, $dateKey, true);
-        $dateRegionServiceKey = hash_hmac('sha256', $service, $dateRegionKey, true);
-        $signingKey = hash_hmac('sha256', $requestType, $dateRegionServiceKey, true);
-        $signature = hash_hmac('sha256', $base64Policy, $signingKey);
-
-        return json_encode(
-            [
-                'signature'    => [
-                    'key'                   => $filePath,
-                    'Content-Type'          => $file['type'],
-                    'acl'                   => 'private',
-                    'success_action_status' => $successStatus,
-                    'policy'                => $base64Policy,
-                    'X-amz-algorithm'       => $algorithm,
-                    'X-amz-credential'      => $credentials,
-                    'X-amz-date'            => $date,
-                    'X-amz-expires'         => $expires,
-                    'X-amz-signature'       => $signature
-                ],
-                'postEndpoint' => Util::getBucketUrl($region, $bucket)
-            ]
-        );
+        return (string)$awsRequest->getUri();
     }
 
     /**
@@ -129,7 +73,7 @@ class S3UploadController extends Controller
      *
      * @return string
      */
-    public function handleFileUpload()
+    public function handleFileUpload(): string
     {
         $request = $this->getRequest();
         $body = json_decode($request->getBody(), true);
@@ -148,7 +92,8 @@ class S3UploadController extends Controller
             }
 
             return json_encode($s3File->flatten());
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            return $e->getMessage();
         }
     }
 
@@ -162,8 +107,10 @@ class S3UploadController extends Controller
         $request = $this->getRequest();
         $body = json_decode($request->getBody(), true);
 
-        if (!$request->param('ID') ||
-            !($file = S3File::get()->byID($request->param('ID')))) {
+        if (
+            !$request->param('ID') ||
+            !($file = S3File::get()->byID($request->param('ID')))
+        ) {
             return $this->httpError(404);
         }
 
@@ -180,7 +127,7 @@ class S3UploadController extends Controller
             if ($record && $record->hasMethod($callback['method'])) {
                 $response = $record->{$callback['method']}($file, $body);
 
-                if ($response && $response === false) {
+                if ($response === false) {
                     $cancelDeletion = true;
                 }
             }

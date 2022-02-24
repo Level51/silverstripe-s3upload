@@ -2,11 +2,13 @@
 
 namespace Level51\S3;
 
+use Exception;
+use League\MimeTypeDetection\ExtensionMimeTypeDetector;
 use SilverStripe\Forms\FormField;
 use SilverStripe\View\Requirements;
 
 /**
- * Upload field for S3Files using dropzone.js
+ * Upload field for S3Files.
  *
  * @package Level51\S3
  */
@@ -14,46 +16,40 @@ class S3UploadField extends FormField
 {
 
     /**
-     * @var string AWS region
+     * @var string|null AWS region
      */
-    protected $region;
+    protected ?string $region = null;
 
     /**
-     * @var string AWS bucket
+     * @var string|null AWS bucket
      */
-    protected $bucket;
+    protected ?string $bucket = null;
 
     /**
      * @var string|null Folder name
      */
-    protected $folderName;
+    protected ?string $folderName = null;
 
     /**
-     * @var int Max file size in MB, overrides the config value if set
+     * @var int|null Max file size in MB, overrides the config value if set
      */
-    protected $maxFileSize;
-
-    /**
-     * @var int Max duration in seconds until the XHR request is canceled, , overrides the config value if set.
-     */
-    protected $timeout;
+    protected ?int $maxFileSize = null;
 
     /**
      * List of accepted file types.
      *
-     * Can be either the mime type (e.g. image/jpeg, including wildcards like image/*)
-     * or file extensions.
+     * Must be mime types (e.g. image/jpeg) including wildcards like image/*.
      *
      * @var array
      */
-    protected $acceptedFiles;
+    protected array $acceptedFiles = [];
 
     /**
      * Custom payload passed to the handleFileUpload method of the upload controller.
      *
      * @var array
      */
-    protected $customPayload = [];
+    protected array $customPayload = [];
 
     public function Field($properties = array())
     {
@@ -68,7 +64,7 @@ class S3UploadField extends FormField
      *
      * @return string
      */
-    public function getPayload()
+    public function getPayload(): string
     {
         return json_encode(
             [
@@ -78,10 +74,9 @@ class S3UploadField extends FormField
                 'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
                 'title'           => $this->Title(),
                 'bucketUrl'       => $this->getBucketUrl(),
-                'dropzoneOptions' => [
+                'uploaderOptions' => [
                     'maxFilesize'   => $this->getMaxFileSize(),
                     'acceptedFiles' => $this->getAcceptedFiles(),
-                    'timeout'       => $this->getTimeout(),
                 ],
                 'settings'        => [
                     'bucket'     => $this->getBucket(),
@@ -100,7 +95,7 @@ class S3UploadField extends FormField
      *
      * @return string URL
      */
-    public function getBucketUrl()
+    public function getBucketUrl(): string
     {
         return Util::getBucketUrl($this->getRegion(), $this->getBucket());
     }
@@ -110,9 +105,9 @@ class S3UploadField extends FormField
      *
      * @return string
      */
-    public function getRegion()
+    public function getRegion(): string
     {
-        return $this->region ?: self::config()->get('region');
+        return $this->region ?: Util::config()->get('default_region');
     }
 
     /**
@@ -120,9 +115,9 @@ class S3UploadField extends FormField
      *
      * @return string
      */
-    public function getBucket()
+    public function getBucket(): string
     {
-        return $this->bucket ?: self::config()->get('bucket');
+        return $this->bucket ?: Util::config()->get('bucket');
     }
 
     /**
@@ -132,7 +127,7 @@ class S3UploadField extends FormField
      */
     public function getFolderName()
     {
-        return $this->folderName ? $this->folderName . DIRECTORY_SEPARATOR : false;
+        return $this->folderName ? ($this->folderName . DIRECTORY_SEPARATOR) : false;
     }
 
     /**
@@ -140,48 +135,41 @@ class S3UploadField extends FormField
      *
      * @return int
      */
-    public function getMaxFileSize()
+    public function getMaxFileSize(): int
     {
-        return $this->maxFileSize ?: self::config()->get('maxFileSize');
+        return $this->maxFileSize ?: Util::config()->get('maxFileSize');
     }
 
     /**
      * Get accepted files config.
      *
-     * @return null|string
+     * @return array
      */
-    public function getAcceptedFiles()
+    public function getAcceptedFiles(): array
     {
         if ($this->acceptedFiles) {
-            return implode(',', $this->acceptedFiles);
+            return array_values(array_unique($this->acceptedFiles));
         }
 
-        if ($accepted = self::config()->get('acceptedFiles')) {
-            return implode(',', $accepted);
+        if ($accepted = Util::config()->get('acceptedFiles')) {
+            return $accepted;
         }
 
-        return null;
-    }
-
-    /**
-     * Get the timeout for the dropzone component.
-     *
-     * @return mixed
-     */
-    public function getTimeout()
-    {
-        return ($this->timeout ?: self::config()->get('timeout')) * 1000;
+        return [];
     }
 
     /**
      * Get the file record according to the value if set.
      *
-     * @return null|\SilverStripe\ORM\DataObject|S3File
+     * @return null|S3File
      */
-    public function getFile()
+    public function getFile(): ?S3File
     {
         if ($this->Value()) {
-            return S3File::get()->byID($this->Value());
+            /** @var S3File $file */
+            $file = S3File::get()->byID($this->Value());
+
+            return $file ?? null;
         }
 
         return null;
@@ -192,7 +180,7 @@ class S3UploadField extends FormField
      *
      * @return array
      */
-    public function getCustomPayload()
+    public function getCustomPayload(): array
     {
         return $this->customPayload;
     }
@@ -206,7 +194,7 @@ class S3UploadField extends FormField
      *
      * @return $this
      */
-    public function setRegion($region)
+    public function setRegion(string $region): self
     {
         $this->region = $region;
 
@@ -218,7 +206,7 @@ class S3UploadField extends FormField
      *
      * @return $this
      */
-    public function setBucket($bucket)
+    public function setBucket(string $bucket): self
     {
         $this->bucket = $bucket;
 
@@ -230,7 +218,7 @@ class S3UploadField extends FormField
      *
      * @return $this
      */
-    public function setFolderName($folderName)
+    public function setFolderName(string $folderName): self
     {
         $this->folderName = trim($folderName, DIRECTORY_SEPARATOR);
 
@@ -238,25 +226,50 @@ class S3UploadField extends FormField
     }
 
     /**
+     * Try to get the mime type for a given file extension.
+     *
+     * @param string $extension
+     * @return string|null
+     */
+    private function guessMimeTypeFromExtension(string $extension): ?string
+    {
+        if ($extension[0] !== '.') {
+            $extension = '.' . $extension;
+        }
+
+        return (new ExtensionMimeTypeDetector())->detectMimeTypeFromPath('file.' . $extension);
+    }
+
+    /**
      * Add an acceptedFiles entry.
+     *
+     * Can either be a mime type or a file extension. In case of a file extension
+     * we will try to detect the according mime type and throw an exception if not found.
      *
      * @param string $extensionOrMimeType
      *
      * @return $this
+     * @throws Exception
      */
-    public function addAcceptedFile($extensionOrMimeType)
+    public function addAcceptedFile(string $extensionOrMimeType): self
     {
-        // Check for extensions without leading . - add it if necessary
-        if (strpos($extensionOrMimeType, '/') === false
-            && $extensionOrMimeType[0] !== '.') {
-            $extensionOrMimeType = '.' . $extensionOrMimeType;
-        }
-
         if (!$this->acceptedFiles) {
             $this->acceptedFiles = [];
         }
 
-        $this->acceptedFiles[] = $extensionOrMimeType;
+        if (strpos($extensionOrMimeType, '/') !== false) {
+            // Is already a mime type, so just add
+            $this->acceptedFiles[] = $extensionOrMimeType;
+        } else {
+            // Is file extension, try to detect mime type
+            $mimeType = $this->guessMimeTypeFromExtension($extensionOrMimeType);
+
+            if (!$mimeType) {
+                throw new Exception('Could not detect mime type for ' . $extensionOrMimeType);
+            }
+
+            $this->acceptedFiles[] = $mimeType;
+        }
 
         return $this;
     }
@@ -267,8 +280,9 @@ class S3UploadField extends FormField
      * @param array|string $accepted
      *
      * @return $this
+     * @throws Exception
      */
-    public function setAcceptedFiles($accepted)
+    public function setAcceptedFiles($accepted): self
     {
         if (is_string($accepted)) {
             $accepted = [$accepted];
@@ -285,8 +299,9 @@ class S3UploadField extends FormField
      * @param array|string $extension
      *
      * @return S3UploadField
+     * @throws Exception
      */
-    public function setAllowedExtensions($extension)
+    public function setAllowedExtensions($extension): self
     {
         return $this->setAcceptedFiles($extension);
     }
@@ -298,23 +313,9 @@ class S3UploadField extends FormField
      *
      * @return $this
      */
-    public function setMaxFileSize($maxFileSize)
+    public function setMaxFileSize(int $maxFileSize): self
     {
         $this->maxFileSize = $maxFileSize;
-
-        return $this;
-    }
-
-    /**
-     * Override the config timeout value for this field.
-     *
-     * @param int $timeout Timeout in seconds
-     *
-     * @return $this
-     */
-    public function setTimeout($timeout)
-    {
-        $this->timeout = $timeout;
 
         return $this;
     }
@@ -327,7 +328,7 @@ class S3UploadField extends FormField
      * @param array $payload
      * @return $this
      */
-    public function setCustomPayload($payload)
+    public function setCustomPayload(array $payload): self
     {
         $this->customPayload = $payload;
 
@@ -340,7 +341,7 @@ class S3UploadField extends FormField
      * @param array $payload
      * @return $this
      */
-    public function addCustomPayload($payload)
+    public function addCustomPayload(array $payload): self
     {
         $this->customPayload = array_merge_recursive($this->customPayload, $payload);
 
@@ -355,7 +356,7 @@ class S3UploadField extends FormField
      * @param string $method
      * @return $this
      */
-    public function setRecordCreateCallback($class, $id, $method = 'onAfterS3FileCreate')
+    public function setRecordCreateCallback(string $class, int $id, string $method = 'onAfterS3FileCreate'): self
     {
         $this->customPayload['recordCreateCallback'] = [
             'class'  => $class,
@@ -374,7 +375,7 @@ class S3UploadField extends FormField
      * @param string $method
      * @return $this
      */
-    public function setRecordDeleteCallback($class, $id, $method = 'onBeforeS3FileDelete')
+    public function setRecordDeleteCallback(string $class, int $id, string $method = 'onBeforeS3FileDelete'): self
     {
         $this->customPayload['recordDeleteCallback'] = [
             'class'  => $class,

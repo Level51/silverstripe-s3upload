@@ -1,3 +1,7 @@
+[Unreleased]
+### Changed
+- Full refactor for PHP > 7.4 with a new upload process using [filepond](https://pqina.nl/filepond/)
+
 [0.1.2] - 2021-12-01
 ### Added
 - Methods to use the s3 client outside of the module

@@ -2,10 +2,11 @@
 
 namespace Level51\S3;
 
-use Aws\S3\S3Client;
+use Aws\S3\S3MultiRegionClient;
 use Carbon\Carbon;
+use Psr\Container\NotFoundExceptionInterface;
 use SilverStripe\Assets\File;
-use SilverStripe\Core\Convert;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 
@@ -27,7 +28,6 @@ use SilverStripe\ORM\FieldType\DBDatetime;
  */
 class S3File extends DataObject
 {
-
     private static $table_name = 'S3File';
 
     private static $db = [
@@ -63,7 +63,7 @@ class S3File extends DataObject
         parent::onAfterDelete();
 
         // Trigger delete on s3 side
-        Service::inst()->deleteFile($this);
+        Injector::inst()->get(Service::class)->deleteFile($this);
     }
 
     /**
@@ -75,21 +75,25 @@ class S3File extends DataObject
      */
     public static function fromUpload($body)
     {
-        // Parse s3 xml response
-        if (isset($body['s3response'])) {
-            $body = array_merge($body, Convert::xml2array($body['s3response']));
-        }
+        /** @var Service $service */
+        $service = Injector::inst()->get(Service::class);
+
+        $bucket = $body['bucket'];
+        $region = $body['region'];
+        $key = $body['key'];
+
+        $headObjectResponse = $service->headObject($bucket, $key);
 
         $s3file = new self();
-        $s3file->Name = isset($body['name']) ? $body['name'] : $body['Key'];
-        $s3file->Size = $body['size'];
-        $s3file->Type = isset($body['type']) && $body['type'] !== '' ? $body['type'] : null;
-        $s3file->Region = $body['region'];
-        $s3file->Location = $body['Location'];
-        $s3file->Bucket = $body['Bucket'];
-        $s3file->Key = $body['Key'];
-        $s3file->ETag = str_replace('"', '', $body['ETag']);
-        $s3file->LastModified = isset($body['lastModified']) ? Carbon::createFromTimestampMs($body['lastModified'])->toDateTimeString() : null;
+        $s3file->Name = $body['name'] ?? $body['key'];
+        $s3file->Size = $headObjectResponse['ContentLength'] ?? 0;
+        $s3file->Type = $headObjectResponse['ContentType'] ?? null;
+        $s3file->Region = $region;
+        $s3file->Location = $headObjectResponse['@metadata']['effectiveUri'] ?? null;
+        $s3file->Bucket = $bucket;
+        $s3file->Key = $key;
+        $s3file->ETag = isset($headObjectResponse['ETag']) ? str_replace('"', '', $headObjectResponse['ETag']) : null;
+        $s3file->LastModified = isset($headObjectResponse['LastModified']) ? Carbon::createFromDate($headObjectResponse['LastModified'])->toDateTimeString() : null;
         $s3file->write();
 
         return $s3file;
@@ -100,32 +104,41 @@ class S3File extends DataObject
      * @param bool $directDownload Whether the download should be triggered immediately or not
      *
      * @return string
+     * @throws NotFoundExceptionInterface
      */
-    public function getTemporaryDownloadLink($expiresIn = 60, $directDownload = true)
+    public function getTemporaryDownloadLink(int $expiresIn = 60, bool $directDownload = true): string
     {
-        return Service::inst()->getTemporaryDownloadLink($this, $expiresIn, $directDownload);
+        return Injector::inst()->get(Service::class)->getTemporaryDownloadLink($this, $expiresIn, $directDownload);
     }
 
     /**
-     * @return S3Client
+     * @return S3MultiRegionClient
+     * @throws NotFoundExceptionInterface
      */
-    public function getS3Client()
+    public function getS3Client(): S3MultiRegionClient
     {
-        return Service::inst()->getClientForFile($this);
+        /** @var Service $service */
+        $service = Injector::inst()->get(Service::class);
+
+        return $service->getClient();
     }
 
     /**
      * @return string
+     * @throws NotFoundExceptionInterface
      */
-    public function getObjectUrl()
+    public function getObjectUrl(): string
     {
-        return Service::inst()->getObjectUrl($this);
+        /** @var Service $service */
+        $service = Injector::inst()->get(Service::class);
+
+        return $service->getObjectUrl($this);
     }
 
     /**
-     * @return string File size in a human readable format
+     * @return string File size in a human-readable format
      */
-    public function getSizeForHuman()
+    public function getSizeForHuman(): string
     {
         return File::format_size($this->Size);
     }
@@ -135,7 +148,7 @@ class S3File extends DataObject
      *
      * @return array
      */
-    public function flatten()
+    public function flatten(): array
     {
         return [
             'id'       => $this->ID,

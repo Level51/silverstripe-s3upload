@@ -1,11 +1,11 @@
 ---
 Name: s3upload
 ---
-Level51\S3\S3UploadField:
-  region: eu-central-1
+Level51\S3:
+  default_region: 'eu-central-1'
+  bucket: ''
   acl: private
-  maxFileSize: 512 # max file size in mb
-  timeout: 60 # upload timeout in seconds
+  maxFileSize: 512
   acceptedFiles:
     - video/*
     - image/*

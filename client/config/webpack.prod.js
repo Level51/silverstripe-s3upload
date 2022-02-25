@@ -58,9 +58,6 @@ module.exports = env => ({
         test: /\.css$/,
         use: [
           {
-            loader: 'vue-style-loader'
-          },
-          {
             loader: MiniCSSExtractPlugin.loader
           },
           {
@@ -71,9 +68,6 @@ module.exports = env => ({
       {
         test: /\.less$/,
         use: [
-          {
-            loader: 'vue-style-loader'
-          },
           {
             loader: MiniCSSExtractPlugin.loader
           },

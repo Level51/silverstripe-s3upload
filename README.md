@@ -1,5 +1,5 @@
 # SilverStripe S3 file upload
-Adds a **Level51\S3\S3File** data object and an appropriate uploader using dropzone.js.
+Adds a **Level51\S3\S3File** data object and an appropriate uploader.
 
 ## Features
 - S3UploadField with direct uploads from the browser to S3 - no local file storage needed
@@ -8,18 +8,18 @@ Adds a **Level51\S3\S3File** data object and an appropriate uploader using dropz
 ## Config
 ### Mandatory S3 config
 ```yaml
-Level51\S3\S3:
+Level51\S3:
   AccessId: **********
   Secret: ********************
+  bucket: MY_BUCKET_NAME # can also be set per field
 ```
 
-### Default upload field config
+### Default config
 ```yaml
-Level51\S3\S3UploadField:
-  region: eu-central-1 # default region, can be set per field
+Level51\S3:
+  default_region: eu-central-1 # default region, can be set per field
   acl: private
-  maxFileSize: 512 # default max file size in mb, can be set per field
-  timeout: 60 # default upload timeout in seconds, can be set per field 
+  maxFileSize: 512 # default max file size in mb, can be set per field 
   acceptedFiles: # file extension or mime type used as default, can be set per field
     - video/*
     - image/*
@@ -30,4 +30,4 @@ Level51\S3\S3UploadField:
 - aws-sdk-php ^3.9.1
 
 ## Maintainer
-- Daniel Kliemsch <dk@lvl51.de>
+- Level51 <hallo@lvl51.de>

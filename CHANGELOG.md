@@ -1,4 +1,4 @@
-[Unreleased]
+[2.0.0] - 2022-02-25
 ### Changed
 - Full refactor for PHP > 7.4 with a new upload process using [filepond](https://pqina.nl/filepond/)
 

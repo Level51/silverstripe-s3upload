@@ -43,16 +43,17 @@
     "webpack-cli": "^3.3.0"
   },
   "dependencies": {
-    "@babel/polyfill": "^7.4.4",
-    "@fortawesome/fontawesome-svg-core": "^1.2.36",
+    "@fortawesome/fontawesome-svg-core": "^1.3.0",
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@fortawesome/vue-fontawesome": "^2.0.6",
     "axios": "^0.24.0",
+    "core-js": "^3.21.1",
     "filepond": "^4.30.3",
     "filepond-plugin-file-validate-size": "^2.2.5",
     "filepond-plugin-file-validate-type": "^1.2.6",
-    "qs": "^6.7.0",
-    "vue": "^2.6.10",
+    "qs": "^6.10.3",
+    "regenerator-runtime": "^0.13.9",
+    "vue": "^2.6.14",
     "vue-filepond": "^6.0.3"
   }
 }

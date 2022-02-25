@@ -11,13 +11,13 @@ const resolve = require('./webpack.resolve').forWebpack;
 module.exports = env => ({
 
   entry: {
-    s3upload: ['@babel/polyfill/noConflict', 'src/S3FileUploadField.js']
+    s3upload: ['core-js/stable', 'regenerator-runtime/runtime', 'src/S3FileUploadField.js']
   },
 
   output: {
     path: path.resolve(__dirname, '../dist'),
     filename: '[name].js',
-    publicPath: '' // TODO check
+    publicPath: ''
   },
 
   mode: 'production',

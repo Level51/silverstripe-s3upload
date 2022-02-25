@@ -54,16 +54,23 @@ class S3UploadController extends Controller
         $bucket = $params['bucket'];
 
         $file = $params['file'];
-        $fileName = uniqid('', true);
-        $fileName .= '.' . pathinfo($file['name'])['extension'];
-        $filePath = $params['folderName'] ? $params['folderName'] . $fileName : $fileName;
+
+        $pathinfo = pathinfo($file['name']);
+
+        $fileName = $pathinfo['filename'] . '_' . uniqid();
+
+        if (isset($pathinfo['extension'])) {
+            $fileName .= '.' . $pathinfo['extension'];
+        }
+
+        $filePath = $params['folderName'] ? ($params['folderName'] . $fileName) : $fileName;
 
         $cmd = $client->getCommand('PutObject', [
             'Bucket' => $bucket,
             'Key'    => $filePath
         ]);
 
-        $awsRequest = $client->createPresignedRequest($cmd, '+20 minutes');
+        $awsRequest = $client->createPresignedRequest($cmd, '+30 minutes');
 
         return (string)$awsRequest->getUri();
     }

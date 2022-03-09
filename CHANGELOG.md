@@ -1,3 +1,7 @@
+[2.0.1] - 2022-03-09
+### Fixed
+- Wrong bucket and key after upload if use_path_style_endpoint is false
+
 [2.0.0] - 2022-02-25
 ### Changed
 - Full refactor for PHP > 7.4 with a new upload process using [filepond](https://pqina.nl/filepond/)

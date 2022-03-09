@@ -133,8 +133,16 @@ export default {
           }
         });
 
+        const bucket = this.payload.settings.bucket;
+
+        // Get the file key
         const urlParts = (new URL(presignedUrl)).pathname.slice(1).split('/');
-        const bucket = urlParts.shift();
+
+        // Remove the bucket name from the key if the path style syntax is active
+        if (this.payload.settings.usePathStyleEndpoint) {
+          urlParts.shift();
+        }
+
         const key = urlParts.join('/');
 
         const fileData = {

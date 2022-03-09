@@ -13023,7 +13023,7 @@ var FilePond = vue_filepond__WEBPACK_IMPORTED_MODULE_0___default()((filepond_plu
       var _this2 = this;
 
       return _asyncToGenerator( /*#__PURE__*/regeneratorRuntime.mark(function _callee() {
-        var presignedUrlParams, presignedUrl, awsResponse, urlParts, bucket, key, fileData, fileCreateResponse, _e$response;
+        var presignedUrlParams, presignedUrl, awsResponse, bucket, urlParts, key, fileData, fileCreateResponse, _e$response;
 
         return regeneratorRuntime.wrap(function _callee$(_context) {
           while (1) {
@@ -13056,8 +13056,14 @@ var FilePond = vue_filepond__WEBPACK_IMPORTED_MODULE_0___default()((filepond_plu
 
               case 7:
                 awsResponse = _context.sent;
-                urlParts = new URL(presignedUrl).pathname.slice(1).split('/');
-                bucket = urlParts.shift();
+                bucket = _this2.payload.settings.bucket; // Get the file key
+
+                urlParts = new URL(presignedUrl).pathname.slice(1).split('/'); // Remove the bucket name from the key if the path style syntax is active
+
+                if (_this2.payload.settings.usePathStyleEndpoint) {
+                  urlParts.shift();
+                }
+
                 key = urlParts.join('/');
                 fileData = {
                   name: file.name,
@@ -13069,20 +13075,20 @@ var FilePond = vue_filepond__WEBPACK_IMPORTED_MODULE_0___default()((filepond_plu
                   bucket: bucket,
                   key: key
                 };
-                _context.next = 14;
+                _context.next = 15;
                 return axios__WEBPACK_IMPORTED_MODULE_4___default().post("".concat(location.origin, "/admin/s3/uploaded"), fileData, {
                   signal: requestController.signal
                 });
 
-              case 14:
+              case 15:
                 fileCreateResponse = _context.sent;
                 _this2.file = fileCreateResponse.data;
                 load();
-                _context.next = 22;
+                _context.next = 23;
                 break;
 
-              case 19:
-                _context.prev = 19;
+              case 20:
+                _context.prev = 20;
                 _context.t0 = _context["catch"](0);
 
                 if (_context.t0 !== null && _context.t0 !== void 0 && (_e$response = _context.t0.response) !== null && _e$response !== void 0 && _e$response.data && typeof _context.t0.response.data === 'string') {
@@ -13091,12 +13097,12 @@ var FilePond = vue_filepond__WEBPACK_IMPORTED_MODULE_0___default()((filepond_plu
                   error(_context.t0.message);
                 }
 
-              case 22:
+              case 23:
               case "end":
                 return _context.stop();
             }
           }
-        }, _callee, null, [[0, 19]]);
+        }, _callee, null, [[0, 20]]);
       }))();
     },
     removeFile: function removeFile() {

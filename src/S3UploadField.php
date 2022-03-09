@@ -79,9 +79,10 @@ class S3UploadField extends FormField
                     'acceptedFiles' => $this->getAcceptedFiles(),
                 ],
                 'settings'        => [
-                    'bucket'     => $this->getBucket(),
-                    'region'     => $this->getRegion(),
-                    'folderName' => $this->getFolderName()
+                    'bucket'               => $this->getBucket(),
+                    'region'               => $this->getRegion(),
+                    'folderName'           => $this->getFolderName(),
+                    'usePathStyleEndpoint' => $this->shouldUsePathStyleEndpoint(),
                 ],
                 'customPayload'   => $this->getCustomPayload()
             ]
@@ -183,6 +184,24 @@ class S3UploadField extends FormField
     public function getCustomPayload(): array
     {
         return $this->customPayload;
+    }
+
+    /**
+     * Whether the endpoint should use the "path style" syntax.
+     *
+     * @return bool
+     */
+    public function shouldUsePathStyleEndpoint()
+    {
+        $usePathStyleSyntax = false;
+
+        if ($clientOptions = Util::config()->get('client_options')) {
+            if (isset($clientOptions['use_path_style_endpoint']) && $clientOptions['use_path_style_endpoint'] === true) {
+                $usePathStyleSyntax = true;
+            }
+        }
+
+        return $usePathStyleSyntax;
     }
 
     // </editor-fold>

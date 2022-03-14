@@ -2,8 +2,10 @@
 
 namespace Level51\S3;
 
+use SilverStripe\Control\Controller;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Config_ForClass;
+use SilverStripe\Core\Convert;
 
 /**
  * Util class for s3 specific tasks.
@@ -66,5 +68,33 @@ class Util
         }
 
         return "$protocol://$bucket.s3$region.$host/";
+    }
+
+    public static function sanitizeKey(string $fileName, ?string $folder = null): string
+    {
+        // Remove slashes
+        $result = str_replace('/', '', $fileName);
+
+        // Append a unique id
+        $pathinfo = pathinfo($result);
+        $result = $pathinfo['filename'] . '_' . uniqid();
+
+        // Convert to valid url
+        $result = Convert::raw2url($result);
+
+        // Re-add extension if known
+        if (isset($pathinfo['extension'])) {
+            $result .= '.' . $pathinfo['extension'];
+        }
+
+        // Prepend folder
+        if ($folder) {
+            $result = Controller::join_links($folder, $result);
+        }
+
+        // Trim leading/trailing spaces
+        $result = trim($result);
+
+        return $result;
     }
 }

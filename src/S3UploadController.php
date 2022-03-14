@@ -55,15 +55,7 @@ class S3UploadController extends Controller
 
         $file = $params['file'];
 
-        $pathinfo = pathinfo($file['name']);
-
-        $fileName = $pathinfo['filename'] . '_' . uniqid();
-
-        if (isset($pathinfo['extension'])) {
-            $fileName .= '.' . $pathinfo['extension'];
-        }
-
-        $filePath = $params['folderName'] ? ($params['folderName'] . $fileName) : $fileName;
+        $filePath = Util::sanitizeKey($file['name'], $params['folderName'] ?? null);
 
         $cmd = $client->getCommand('PutObject', [
             'Bucket' => $bucket,

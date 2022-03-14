@@ -1,3 +1,7 @@
+[2.0.2] - 2022-03-14
+### Fixed
+- Improved file key sanitizing, fixes errors for file names including e.g. spaces
+
 [2.0.1] - 2022-03-09
 ### Fixed
 - Wrong bucket and key after upload if use_path_style_endpoint is false

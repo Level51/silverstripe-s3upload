@@ -18,22 +18,22 @@ class S3UploadField extends FormField
     /**
      * @var string|null AWS region
      */
-    protected ?string $region = null;
+    protected $region = null;
 
     /**
      * @var string|null AWS bucket
      */
-    protected ?string $bucket = null;
+    protected $bucket = null;
 
     /**
      * @var string|null Folder name
      */
-    protected ?string $folderName = null;
+    protected $folderName = null;
 
     /**
      * @var int|null Max file size in MB, overrides the config value if set
      */
-    protected ?int $maxFileSize = null;
+    protected $maxFileSize = null;
 
     /**
      * List of accepted file types.
@@ -42,14 +42,17 @@ class S3UploadField extends FormField
      *
      * @var array
      */
-    protected array $acceptedFiles = [];
+    protected $acceptedFiles = [];
 
     /**
      * Custom payload passed to the handleFileUpload method of the upload controller.
      *
      * @var array
      */
-    protected array $customPayload = [];
+    protected $customPayload = [];
+
+    /** @var bool */
+    protected $validateFileType = null;
 
     public function Field($properties = array())
     {
@@ -75,8 +78,9 @@ class S3UploadField extends FormField
                 'title'           => $this->Title(),
                 'bucketUrl'       => $this->getBucketUrl(),
                 'uploaderOptions' => [
-                    'maxFilesize'   => $this->getMaxFileSize(),
-                    'acceptedFiles' => $this->getAcceptedFiles(),
+                    'maxFilesize'      => $this->getMaxFileSize(),
+                    'acceptedFiles'    => $this->getAcceptedFiles(),
+                    'validateFileType' => $this->validateFileType(),
                 ],
                 'settings'        => [
                     'bucket'               => $this->getBucket(),
@@ -157,6 +161,11 @@ class S3UploadField extends FormField
         }
 
         return [];
+    }
+
+    public function validateFileType(): bool
+    {
+        return $this->validateFileType !== null ? $this->validateFileType : Util::config()->get('validateFileType');
     }
 
     /**
@@ -240,6 +249,18 @@ class S3UploadField extends FormField
     public function setFolderName(string $folderName): self
     {
         $this->folderName = trim($folderName, DIRECTORY_SEPARATOR);
+
+        return $this;
+    }
+
+    /**
+     * @param bool $doValidate
+     *
+     * @return $this
+     */
+    public function setValidateFileType(bool $doValidate): self
+    {
+        $this->validateFileType = $doValidate;
 
         return $this;
     }

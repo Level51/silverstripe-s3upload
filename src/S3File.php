@@ -93,7 +93,7 @@ class S3File extends DataObject
         $s3file->Bucket = $bucket;
         $s3file->Key = $key;
         $s3file->ETag = isset($headObjectResponse['ETag']) ? str_replace('"', '', $headObjectResponse['ETag']) : null;
-        $s3file->LastModified = isset($headObjectResponse['LastModified']) ? Carbon::createFromDate($headObjectResponse['LastModified'])->toDateTimeString() : null;
+        $s3file->LastModified = isset($headObjectResponse['LastModified']) ? Carbon::parse($headObjectResponse['LastModified'])->toDateTimeString() : null;
         $s3file->write();
 
         return $s3file;

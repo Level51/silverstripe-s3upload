@@ -5,6 +5,7 @@
       :name="payload.name"
       lable-idle="Drop files here to upload"
       :allow-multiple="false"
+      :allow-file-type-validation="payload.uploaderOptions.validateFileType"
       :accepted-file-types="payload.uploaderOptions.acceptedFiles"
       :server="filepondServerConfig"
       :max-file-size="maxFileSize"

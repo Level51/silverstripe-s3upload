@@ -1,3 +1,7 @@
+[2.0.3] - 2022-11-16
+### Added
+- Option to extend extension-to-mime-type map via config api
+
 [2.0.2] - 2022-03-14
 ### Fixed
 - Improved file key sanitizing, fixes errors for file names including e.g. spaces

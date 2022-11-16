@@ -6,6 +6,7 @@
       lable-idle="Drop files here to upload"
       :allow-multiple="false"
       :accepted-file-types="payload.uploaderOptions.acceptedFiles"
+      :file-validate-type-detect-type="handleFileTypeDetection"
       :server="filepondServerConfig"
       :max-file-size="maxFileSize"
     />
@@ -184,6 +185,29 @@ export default {
         this.file = null;
       });
     },
+    handleFileTypeDetection(source, type) {
+      return new Promise((resolve, reject) => {
+        // Try to manually detect the proper file type in case the browser failed
+        if (!type) {
+          if (typeof source.name === 'string') {
+            const extension = source.name.split('.').pop();
+
+            if (extension) {
+              // TODO check for further cases
+              switch (extension) {
+                case 'psd':
+                  resolve('image/vnd.adobe.photoshop');
+                  break;
+                default:
+                  resolve(type);
+              }
+            }
+          }
+        }
+
+        resolve(type);
+      });
+    }
   }
 };
 </script>

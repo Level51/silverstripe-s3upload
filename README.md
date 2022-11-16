@@ -25,6 +25,13 @@ Level51\S3:
     - image/*
 ```
 
+### Optional config
+```yaml
+Level51\S3\S3UploadField:
+  ExtensionToMimeTypeOverrides:
+    psd: image/vnd.adobe.photoshop
+```
+
 ## Requirements
 - SilverStripe ^4.3
 - aws-sdk-php ^3.9.1

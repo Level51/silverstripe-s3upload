@@ -4,6 +4,9 @@ namespace Level51\S3;
 
 use Exception;
 use League\MimeTypeDetection\ExtensionMimeTypeDetector;
+use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
+use League\MimeTypeDetection\OverridingExtensionToMimeTypeMap;
+use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Forms\FormField;
 use SilverStripe\View\Requirements;
 
@@ -14,6 +17,7 @@ use SilverStripe\View\Requirements;
  */
 class S3UploadField extends FormField
 {
+    use Configurable;
 
     /**
      * @var string|null AWS region
@@ -256,7 +260,12 @@ class S3UploadField extends FormField
             $extension = '.' . $extension;
         }
 
-        return (new ExtensionMimeTypeDetector())->detectMimeTypeFromPath('file.' . $extension);
+        $map = new OverridingExtensionToMimeTypeMap(
+            new GeneratedExtensionToMimeTypeMap(),
+            self::config()->get('ExtensionToMimeTypeOverrides') ?: []
+        );
+
+        return (new ExtensionMimeTypeDetector($map))->detectMimeTypeFromPath('file.' . $extension);
     }
 
     /**

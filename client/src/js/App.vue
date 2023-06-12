@@ -28,7 +28,7 @@
       <div class="s3-file-upload-preview-info fill-height flexbox-area-grow">
         <div class="s3-file-upload-meta">
           <a
-            :href="file.location"
+            :href="file.presignedUrl ?? file.location"
             target="_blank">
             {{ file.name }}
           </a>

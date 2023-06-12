@@ -151,16 +151,17 @@ class S3File extends DataObject
     public function flatten(): array
     {
         return [
-            'id'       => $this->ID,
-            'title'    => $this->Title,
-            'location' => $this->Location,
-            'region'   => $this->Region,
-            'bucket'   => $this->Bucket,
-            'key'      => $this->Key,
-            'etag'     => $this->ETag,
-            'name'     => $this->Name,
-            'size'     => $this->getSizeForHuman(),
-            'type'     => $this->Type
+            'id'           => $this->ID,
+            'title'        => $this->Title,
+            'location'     => $this->Location,
+            'region'       => $this->Region,
+            'bucket'       => $this->Bucket,
+            'key'          => $this->Key,
+            'etag'         => $this->ETag,
+            'name'         => $this->Name,
+            'size'         => $this->getSizeForHuman(),
+            'type'         => $this->Type,
+            'presignedUrl' => $this->getTemporaryDownloadLink(60, false)
         ];
     }
 }

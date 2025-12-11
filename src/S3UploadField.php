@@ -7,7 +7,12 @@ use League\MimeTypeDetection\ExtensionMimeTypeDetector;
 use League\MimeTypeDetection\GeneratedExtensionToMimeTypeMap;
 use League\MimeTypeDetection\OverridingExtensionToMimeTypeMap;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormField;
+use SilverStripe\ORM\DataList;
+use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\DataObjectInterface;
+use SilverStripe\ORM\Relation;
 use SilverStripe\View\Requirements;
 
 /**
@@ -22,22 +27,22 @@ class S3UploadField extends FormField
     /**
      * @var string|null AWS region
      */
-    protected ?string $region = null;
+    protected $region = null;
 
     /**
      * @var string|null AWS bucket
      */
-    protected ?string $bucket = null;
+    protected $bucket = null;
 
     /**
      * @var string|null Folder name
      */
-    protected ?string $folderName = null;
+    protected $folderName = null;
 
     /**
      * @var int|null Max file size in MB, overrides the config value if set
      */
-    protected ?int $maxFileSize = null;
+    protected $maxFileSize = null;
 
     /**
      * List of accepted file types.
@@ -46,14 +51,27 @@ class S3UploadField extends FormField
      *
      * @var array
      */
-    protected array $acceptedFiles = [];
+    protected $acceptedFiles = [];
 
     /**
      * Custom payload passed to the handleFileUpload method of the upload controller.
      *
      * @var array
      */
-    protected array $customPayload = [];
+    protected $customPayload = [];
+
+    /** @var bool */
+    protected $validateFileType = null;
+
+    /** @var bool */
+    protected $allowMultiple = false;
+
+    /**
+     * Only relevant when $allowMultiple is true
+     *
+     * @var int
+     */
+    protected $maxFiles = null;
 
     public function Field($properties = array())
     {
@@ -70,17 +88,26 @@ class S3UploadField extends FormField
      */
     public function getPayload(): string
     {
+        $flatFiles = [];
+        if ($files = $this->getFiles()) {
+            foreach ($files as $file) {
+                $flatFiles[] = $file->flatten();
+            }
+        }
+
         return json_encode(
             [
                 'id'              => $this->ID(),
                 'name'            => $this->getName(),
-                'value'           => $this->Value(),
-                'file'            => ($file = $this->getFile()) ? $file->flatten() : null,
+                'files'           => $flatFiles,
                 'title'           => $this->Title(),
                 'bucketUrl'       => $this->getBucketUrl(),
                 'uploaderOptions' => [
-                    'maxFilesize'   => $this->getMaxFileSize(),
-                    'acceptedFiles' => $this->getAcceptedFiles(),
+                    'maxFilesize'      => $this->getMaxFileSize(),
+                    'acceptedFiles'    => $this->getAcceptedFiles(),
+                    'validateFileType' => $this->validateFileType(),
+                    'allowMultiple'    => $this->allowMultiple,
+                    'maxFiles'         => $this->maxFiles,
                 ],
                 'settings'        => [
                     'bucket'               => $this->getBucket(),
@@ -91,6 +118,53 @@ class S3UploadField extends FormField
                 'customPayload'   => $this->getCustomPayload()
             ]
         );
+    }
+
+    /**
+     * Load the value from the dataobject into this field
+     *
+     * @param DataObject|DataObjectInterface $record
+     */
+    public function loadFrom(DataObjectInterface $record)
+    {
+        $fieldName = $this->getName();
+        if (empty($fieldName) || empty($record)) {
+            return;
+        }
+
+        $relation = $record->hasMethod($fieldName)
+            ? $record->$fieldName()
+            : null;
+
+        if ($relation instanceof Relation) {
+            $value = array_values($relation->getIDList());
+
+            parent::setValue($value);
+        } elseif ($record->hasField($fieldName)) {
+            $value = json_decode($record->$fieldName, true);
+
+            parent::setValue($value);
+        }
+    }
+
+    public function saveInto(DataObjectInterface $record)
+    {
+        $fieldName = $this->getName();
+        if (empty($fieldName) || empty($record)) {
+            return;
+        }
+
+        $relation = $record->hasMethod($fieldName)
+            ? $record->$fieldName()
+            : null;
+
+        // Detect DB relation or field
+        if ($relation instanceof Relation && is_array($this->Value())) {
+            // Save ids into relation
+            $relation->setByIDList($this->Value());
+        }
+
+        parent::saveInto($record);
     }
 
     // <editor-fold defaultstate="collapsed" desc="getter">
@@ -163,18 +237,22 @@ class S3UploadField extends FormField
         return [];
     }
 
+    public function validateFileType(): bool
+    {
+        return $this->validateFileType !== null ? $this->validateFileType : Util::config()->get('validateFileType');
+    }
+
     /**
-     * Get the file record according to the value if set.
+     * Get the file records according to the value if set.
      *
-     * @return null|S3File
+     * @return null|DataList|S3File[]
      */
-    public function getFile(): ?S3File
+    public function getFiles(): ?DataList
     {
         if ($this->Value()) {
-            /** @var S3File $file */
-            $file = S3File::get()->byID($this->Value());
+            $ids = is_array($this->Value()) ? $this->Value() : [$this->Value()];
 
-            return $file ?? null;
+            return S3File::get()->byIDs($ids);
         }
 
         return null;
@@ -213,6 +291,21 @@ class S3UploadField extends FormField
     // <editor-fold defaultstate="collapsed" desc="setter">
 
     /**
+     * @param mixed $value
+     * @param null|array|DataObject $obj {@see Form::loadDataFrom}
+     * @return $this
+     */
+    public function setValue($value, $obj = null)
+    {
+        if ($obj instanceof DataObject) {
+            $this->loadFrom($obj);
+        } else {
+            parent::setValue($value);
+        }
+        return $this;
+    }
+
+    /**
      * @param string $region
      *
      * @return $this
@@ -249,9 +342,22 @@ class S3UploadField extends FormField
     }
 
     /**
+     * @param bool $doValidate
+     *
+     * @return $this
+     */
+    public function setValidateFileType(bool $doValidate): self
+    {
+        $this->validateFileType = $doValidate;
+
+        return $this;
+    }
+
+    /**
      * Try to get the mime type for a given file extension.
      *
      * @param string $extension
+     *
      * @return string|null
      */
     private function guessMimeTypeFromExtension(string $extension): ?string
@@ -354,6 +460,7 @@ class S3UploadField extends FormField
      * Will override any existing custom payload.
      *
      * @param array $payload
+     *
      * @return $this
      */
     public function setCustomPayload(array $payload): self
@@ -367,6 +474,7 @@ class S3UploadField extends FormField
      * Add something to the custom payload array.
      *
      * @param array $payload
+     *
      * @return $this
      */
     public function addCustomPayload(array $payload): self
@@ -382,6 +490,7 @@ class S3UploadField extends FormField
      * @param string $class e.g. My\Namespaced\DataObject
      * @param int    $id
      * @param string $method
+     *
      * @return $this
      */
     public function setRecordCreateCallback(string $class, int $id, string $method = 'onAfterS3FileCreate'): self
@@ -401,6 +510,7 @@ class S3UploadField extends FormField
      * @param string $class e.g. My\Namespaced\DataObject
      * @param int    $id
      * @param string $method
+     *
      * @return $this
      */
     public function setRecordDeleteCallback(string $class, int $id, string $method = 'onBeforeS3FileDelete'): self
@@ -414,5 +524,18 @@ class S3UploadField extends FormField
         return $this;
     }
 
+    /**
+     * @param bool $allowMultiple
+     * @param int  $maxFiles
+     *
+     * @return $this
+     */
+    public function setAllowMultiple(bool $allowMultiple, int $maxFiles = null): self
+    {
+        $this->allowMultiple = $allowMultiple;
+        $this->maxFiles = $maxFiles;
+
+        return $this;
+    }
     // </editor-fold>
 }

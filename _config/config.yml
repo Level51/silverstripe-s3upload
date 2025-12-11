@@ -6,6 +6,7 @@ Level51\S3:
   bucket: ''
   acl: private
   maxFileSize: 512
+  validateFileType: true
   acceptedFiles:
     - video/*
     - image/*

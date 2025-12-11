@@ -93,7 +93,7 @@ class S3File extends DataObject
         $s3file->Bucket = $bucket;
         $s3file->Key = $key;
         $s3file->ETag = isset($headObjectResponse['ETag']) ? str_replace('"', '', $headObjectResponse['ETag']) : null;
-        $s3file->LastModified = isset($headObjectResponse['LastModified']) ? Carbon::createFromDate($headObjectResponse['LastModified'])->toDateTimeString() : null;
+        $s3file->LastModified = isset($headObjectResponse['LastModified']) ? Carbon::parse($headObjectResponse['LastModified'])->toDateTimeString() : null;
         $s3file->write();
 
         return $s3file;
@@ -151,16 +151,17 @@ class S3File extends DataObject
     public function flatten(): array
     {
         return [
-            'id'       => $this->ID,
-            'title'    => $this->Title,
-            'location' => $this->Location,
-            'region'   => $this->Region,
-            'bucket'   => $this->Bucket,
-            'key'      => $this->Key,
-            'etag'     => $this->ETag,
-            'name'     => $this->Name,
-            'size'     => $this->getSizeForHuman(),
-            'type'     => $this->Type
+            'id'           => $this->ID,
+            'title'        => $this->Title,
+            'location'     => $this->Location,
+            'region'       => $this->Region,
+            'bucket'       => $this->Bucket,
+            'key'          => $this->Key,
+            'etag'         => $this->ETag,
+            'name'         => $this->Name,
+            'size'         => $this->getSizeForHuman(),
+            'type'         => $this->Type,
+            'presignedUrl' => $this->getTemporaryDownloadLink(60, false)
         ];
     }
 }

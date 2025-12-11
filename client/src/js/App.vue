@@ -1,29 +1,35 @@
 <template>
   <div class="s3-file-upload-component">
     <file-pond
-      v-if="!file"
-      :name="payload.name"
+      v-if="showUploader"
+      :name="payload.name + '-filepond'"
+      :class="{ 'mb-4': showFileList }"
       lable-idle="Drop files here to upload"
-      :allow-multiple="false"
+      :allow-multiple="allowMultiple"
+      :allow-file-type-validation="payload.uploaderOptions.validateFileType"
       :accepted-file-types="payload.uploaderOptions.acceptedFiles"
       :file-validate-type-detect-type="handleFileTypeDetection"
       :server="filepondServerConfig"
       :max-file-size="maxFileSize"
+      :max-files="maxFiles"
     />
 
     <div
-      v-else
+      v-if="showFileList"
+      v-for="file of files"
+      :key="file.id"
+      :class="{ 'mt-2': files.length > 1 }"
       class="s3-file-upload-preview">
       <div
         class="s3-file-upload-preview-icon"
-        v-if="iconClass">
-        <fa-icon :icon="['fas', iconClass]" />
+        v-if="getIconClass(file)">
+        <fa-icon :icon="['fas', getIconClass(file)]" />
       </div>
 
       <div class="s3-file-upload-preview-info fill-height flexbox-area-grow">
         <div class="s3-file-upload-meta">
           <a
-            :href="file.location"
+            :href="file.presignedUrl ?? file.location"
             target="_blank">
             {{ file.name }}
           </a>
@@ -35,14 +41,23 @@
 
       <button
         class="btn uploadfield-item__remove-btn btn-secondary btn--no-text font-icon-cancel btn--icon-md"
-        @click.prevent="removeFile" />
+        @click.prevent="removeFile(file)" />
     </div>
 
     <input
+      v-if="!allowMultiple"
       type="hidden"
       :id="payload.id"
       :name="payload.name"
-      :value="value">
+      :value="files[0]?.id ?? null">
+
+    <template v-else>
+      <input
+        v-for="file of files"
+        type="hidden"
+        :name="payload.name + '[]'"
+        :value="file.id">
+    </template>
   </div>
 </template>
 
@@ -66,24 +81,31 @@ export default {
   },
   data() {
     return {
-      file: null,
+      files: [],
     };
   },
   components: { FilePond },
   created() {
-    if (this.payload.file) this.file = this.payload.file;
+    if (this.payload.files) this.files = this.payload.files;
   },
   computed: {
-    value() {
-      return this.file ? this.file.id : 0;
+    showUploader() {
+      if (this.allowMultiple) {
+        if (this.maxFiles !== null) {
+          return this.files?.length < this.maxFiles;
+        }
+
+        return true;
+      }
+
+      return this.files?.length === 0;
     },
-    iconClass() {
-      if (!this.file) return null;
-      const { type } = this.file;
+    showFileList() {
+      if (this.allowMultiple) {
+        return true;
+      }
 
-      if (type && type.indexOf('video') > -1) return 'file-video';
-
-      return 'file';
+      return !this.showUploader;
     },
     filepondServerConfig() {
       return {
@@ -107,9 +129,23 @@ export default {
     },
     maxFileSize() {
       return this.payload?.uploaderOptions?.maxFilesize ? `${this.payload.uploaderOptions.maxFilesize}MB` : null;
+    },
+    maxFiles() {
+      return this.payload?.uploaderOptions?.maxFiles ?? null;
+    },
+    allowMultiple() {
+      return this.payload?.uploaderOptions?.allowMultiple ?? false;
     }
   },
   methods: {
+    getIconClass(file) {
+      if (!file) return null;
+      const { type } = file;
+
+      if (type && type.indexOf('video') > -1) return 'file-video';
+
+      return 'file';
+    },
     async process(file, metadata, load, error, progress, requestController) {
       try {
         const presignedUrlParams = {
@@ -165,7 +201,7 @@ export default {
           }
         );
 
-        this.file = fileCreateResponse.data;
+        this.files.push(fileCreateResponse.data);
         load();
       } catch (e) {
         if (e?.response?.data && typeof e.response.data === 'string') {
@@ -175,14 +211,14 @@ export default {
         }
       }
     },
-    removeFile() {
+    removeFile(file) {
       axios.post(
-        `${location.origin}/admin/s3/remove/${this.file.id}`,
+        `${location.origin}/admin/s3/remove/${file.id}`,
         {
           customPayload: this.payload.customPayload
         }
       ).then((response) => {
-        this.file = null;
+        this.files = this.files.filter((f) => f.id !== file.id);
       });
     },
     handleFileTypeDetection(source, type) {

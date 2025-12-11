@@ -17,7 +17,10 @@ class Service
     use Injectable;
     use Configurable;
 
-    private S3MultiRegionClient $s3;
+    /**
+     * @var S3MultiRegionClient
+     */
+    private $s3;
 
     public function __construct()
     {

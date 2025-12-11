@@ -1,14 +1,24 @@
-const settings = require('./client/config/webpack.resolve').forEsLint;
-
 module.exports = {
   root: true,
-  parserOptions: {
-    parser: 'babel-eslint'
+
+  env: {
+    node: true,
+    browser: true,
+    es2021: true
   },
+
+  parserOptions: {
+    ecmaVersion: 2021,
+    parser: '@babel/eslint-parser',
+    requireConfigFile: false,
+    sourceType: 'module'
+  },
+
   extends: [
     'airbnb-base',
-    'plugin:vue/strongly-recommended'
+    'plugin:vue/vue3-strongly-recommended'
   ],
+
   rules: {
     'no-new': 0,
     'comma-dangle': 0,
@@ -17,13 +27,27 @@ module.exports = {
     'no-restricted-globals': 0,
     'no-underscore-dangle': 0,
     'vue/html-closing-bracket-newline': 0,
-    'no-param-reassign': 0
+    'no-param-reassign': 0,
+    'vue/block-order': ['error', {
+      order: ['script', 'template', 'style']
+    }],
+    'import/no-unresolved': ['error', {
+      ignore: ['^src/', '^styles/']
+    }],
+    'max-len': 150,
   },
-  globals: {
-    payload: false // Define the payload as valid global variable, with "false" to prevent override
-  },
-  plugins: [
-    'vue'
-  ],
-  settings
+
+  plugins: ['vue'],
+
+  settings: {
+    'import/resolver': {
+      alias: {
+        map: [
+          ['src', './client/src/js'],
+          ['styles', './client/src/styles']
+        ],
+        extensions: ['.js', '.vue', '.json', '.less']
+      }
+    }
+  }
 };

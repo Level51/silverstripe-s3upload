@@ -101,6 +101,7 @@ class S3UploadField extends FormField
                 'name'            => $this->getName(),
                 'files'           => $flatFiles,
                 'title'           => $this->Title(),
+                'readonly'        => get_class($this) === S3UploadField_Readonly::class,
                 'bucketUrl'       => $this->getBucketUrl(),
                 'uploaderOptions' => [
                     'maxFilesize'      => $this->getMaxFileSize(),
@@ -115,7 +116,7 @@ class S3UploadField extends FormField
                     'folderName'           => $this->getFolderName(),
                     'usePathStyleEndpoint' => $this->shouldUsePathStyleEndpoint(),
                 ],
-                'customPayload'   => $this->getCustomPayload()
+                'customPayload'   => $this->getCustomPayload(),
             ]
         );
     }
@@ -165,6 +166,23 @@ class S3UploadField extends FormField
         }
 
         parent::saveInto($record);
+    }
+
+    public function castedCopy($classOrCopy)
+    {
+        $copy = parent::castedCopy($classOrCopy);
+
+        $copy->region = $this->region;
+        $copy->bucket = $this->bucket;
+        $copy->folderName = $this->folderName;
+        $copy->maxFileSize = $this->maxFileSize;
+        $copy->acceptedFiles = $this->acceptedFiles;
+        $copy->customPayload = $this->customPayload;
+        $copy->validateFileType = $this->validateFileType;
+        $copy->allowMultiple = $this->allowMultiple;
+        $copy->maxFiles = $this->maxFiles;
+
+        return $copy;
     }
 
     // <editor-fold defaultstate="collapsed" desc="getter">
@@ -291,7 +309,7 @@ class S3UploadField extends FormField
     // <editor-fold defaultstate="collapsed" desc="setter">
 
     /**
-     * @param mixed $value
+     * @param mixed                 $value
      * @param null|array|DataObject $obj {@see Form::loadDataFrom}
      * @return $this
      */
@@ -498,7 +516,7 @@ class S3UploadField extends FormField
         $this->customPayload['recordCreateCallback'] = [
             'class'  => $class,
             'id'     => $id,
-            'method' => $method
+            'method' => $method,
         ];
 
         return $this;
@@ -518,7 +536,7 @@ class S3UploadField extends FormField
         $this->customPayload['recordDeleteCallback'] = [
             'class'  => $class,
             'id'     => $id,
-            'method' => $method
+            'method' => $method,
         ];
 
         return $this;

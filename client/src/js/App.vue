@@ -21,7 +21,13 @@ const maxFileSize = computed(() => (props.payload?.uploaderOptions?.maxFilesize 
 const maxFiles = computed(() => props.payload?.uploaderOptions?.maxFiles ?? null);
 const allowMultiple = computed(() => props.payload?.uploaderOptions?.allowMultiple ?? false);
 
+const isReadonly = computed(() => props.payload?.readonly ?? false);
+
 const showUploader = computed(() => {
+  if (isReadonly.value) {
+    return false;
+  }
+
   if (allowMultiple.value) {
     if (maxFiles.value !== null) {
       return files.value?.length < maxFiles.value;
@@ -136,6 +142,10 @@ const getIconClass = (file) => {
 };
 
 const removeFile = (file) => {
+  if (isReadonly.value) {
+    return;
+  }
+
   axios.post(
     `${location.origin}/admin/s3/remove/${file.id}`,
     {
@@ -212,6 +222,7 @@ const handleFileTypeDetection = (source, type) => new Promise((resolve) => {
         </div>
 
         <button
+          v-if="!isReadonly"
           class="btn uploadfield-item__remove-btn btn-secondary btn--no-text font-icon-cancel btn--icon-md"
           @click.prevent="removeFile(file)" />
       </div>

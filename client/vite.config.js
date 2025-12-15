@@ -41,12 +41,4 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV !== 'production',
     minify: process.env.NODE_ENV === 'production' ? 'esbuild' : false
   },
-
-  css: {
-    preprocessorOptions: {
-      less: {
-        javascriptEnabled: true
-      }
-    }
-  }
 });

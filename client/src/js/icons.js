@@ -1,9 +1,10 @@
-import Vue from 'vue';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
-import { faVideo, faFileVideo, faFile } from '@fortawesome/free-solid-svg-icons';
+import { faFile, faFileImage, faFileVideo, faVideo } from '@fortawesome/free-solid-svg-icons';
 
-library.add(faVideo, faFileVideo, faFile);
+library.add(faFile, faFileImage, faFileVideo, faVideo);
 
-Vue.component('fa-icon', FontAwesomeIcon);
+export function IconsPlugin(app) {
+  app.component('fa-icon', FontAwesomeIcon);
+}

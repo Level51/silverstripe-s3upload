@@ -1,3 +1,174 @@
+<script setup>
+import { ref, computed } from 'vue';
+import vueFilePond from 'vue-filepond';
+import 'filepond/dist/filepond.min.css';
+import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
+import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
+import axios from 'axios';
+import qs from 'qs';
+
+const FilePond = vueFilePond(FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
+
+const props = defineProps({
+  payload: {
+    type: Object,
+    required: true,
+  },
+});
+
+const files = ref(props.payload.files || []);
+const maxFileSize = computed(() => (props.payload?.uploaderOptions?.maxFilesize ? `${props.payload.uploaderOptions.maxFilesize}MB` : null));
+const maxFiles = computed(() => props.payload?.uploaderOptions?.maxFiles ?? null);
+const allowMultiple = computed(() => props.payload?.uploaderOptions?.allowMultiple ?? false);
+
+const showUploader = computed(() => {
+  if (allowMultiple.value) {
+    if (maxFiles.value !== null) {
+      return files.value?.length < maxFiles.value;
+    }
+    return true;
+  }
+  return files.value?.length === 0;
+});
+
+const showFileList = computed(() => {
+  if (allowMultiple.value) {
+    return true;
+  }
+  return !showUploader.value;
+});
+
+const processUpload = async (file, metadata, load, error, progress, requestController) => {
+  try {
+    const presignedUrlParams = {
+      ...props.payload.settings,
+      file: {
+        name: file.name,
+        type: file.type,
+      }
+    };
+
+    const presignedUrl = (await axios.post(`${location.origin}/admin/s3/sign?${qs.stringify(presignedUrlParams)}`, null, {
+      signal: requestController.signal,
+    })).data;
+
+    await axios.put(presignedUrl, file, {
+      headers: {
+        'Content-Type': file.type
+      },
+      signal: requestController.signal,
+      onUploadProgress: (progressEvent) => {
+        progress(true, progressEvent.loaded, progressEvent.total);
+      }
+    });
+
+    const { bucket } = props.payload.settings;
+
+    // Get the file key
+    const urlParts = (new URL(presignedUrl)).pathname.slice(1).split('/');
+
+    // Remove the bucket name from the key if the path style syntax is active
+    if (props.payload.settings.usePathStyleEndpoint) {
+      urlParts.shift();
+    }
+
+    const key = urlParts.join('/');
+
+    const fileData = {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      region: props.payload.settings.region,
+      lastModified: file.lastModified,
+      customPayload: props.payload.customPayload,
+      bucket,
+      key,
+    };
+
+    const fileCreateResponse = await axios.post(
+      `${location.origin}/admin/s3/uploaded`,
+      fileData,
+      {
+        signal: requestController.signal,
+      }
+    );
+
+    files.value.push(fileCreateResponse.data);
+    load();
+  } catch (e) {
+    if (e?.response?.data && typeof e.response.data === 'string') {
+      error(e.response.data);
+    } else {
+      error(e.message);
+    }
+  }
+};
+
+const filepondServerConfig = computed(() => ({
+  // eslint-disable-next-line no-unused-vars
+  process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
+    const requestController = new AbortController();
+
+    processUpload(file, metadata, load, error, progress, requestController);
+
+    return {
+      abort: () => {
+        requestController.abort();
+        abort();
+      }
+    };
+  },
+  revert: null,
+  restore: null,
+  load: null,
+  fetch: null,
+}));
+
+const getIconClass = (file) => {
+  if (!file) return null;
+  const { type } = file;
+
+  if (type && type.indexOf('video') > -1) return 'file-video';
+
+  if (type && type.indexOf('image') > -1) return 'file-image';
+
+  return 'file';
+};
+
+const removeFile = (file) => {
+  axios.post(
+    `${location.origin}/admin/s3/remove/${file.id}`,
+    {
+      customPayload: props.payload.customPayload
+    }
+  ).then(() => {
+    files.value = files.value.filter((f) => f.id !== file.id);
+  });
+};
+
+const handleFileTypeDetection = (source, type) => new Promise((resolve) => {
+  // Try to manually detect the proper file type in case the browser failed
+  if (!type) {
+    if (typeof source.name === 'string') {
+      const extension = source.name.split('.').pop();
+
+      if (extension) {
+        // TODO check for further cases
+        switch (extension) {
+          case 'psd':
+            resolve('image/vnd.adobe.photoshop');
+            break;
+          default:
+            resolve(type);
+        }
+      }
+    }
+  }
+
+  resolve(type);
+});
+</script>
+
 <template>
   <div class="s3-file-upload-component">
     <file-pond
@@ -15,33 +186,35 @@
     />
 
     <div
-      v-if="showFileList"
-      v-for="file of files"
-      :key="file.id"
-      :class="{ 'mt-2': files.length > 1 }"
-      class="s3-file-upload-preview">
+      v-if="showFileList">
       <div
-        class="s3-file-upload-preview-icon"
-        v-if="getIconClass(file)">
-        <fa-icon :icon="['fas', getIconClass(file)]" />
-      </div>
-
-      <div class="s3-file-upload-preview-info fill-height flexbox-area-grow">
-        <div class="s3-file-upload-meta">
-          <a
-            :href="file.presignedUrl ?? file.location"
-            target="_blank">
-            {{ file.name }}
-          </a>
-          <span class="s3-file-upload-muted">
-            {{ file.size }}
-          </span>
+        v-for="file of files"
+        :key="file.id"
+        :class="{ 'mt-2': files.length > 1 }"
+        class="s3-file-upload-preview">
+        <div
+          class="s3-file-upload-preview-icon"
+          v-if="getIconClass(file)">
+          <fa-icon :icon="['fas', getIconClass(file)]" />
         </div>
-      </div>
 
-      <button
-        class="btn uploadfield-item__remove-btn btn-secondary btn--no-text font-icon-cancel btn--icon-md"
-        @click.prevent="removeFile(file)" />
+        <div class="s3-file-upload-preview-info fill-height flexbox-area-grow">
+          <div class="s3-file-upload-meta">
+            <a
+              :href="file.presignedUrl ?? file.location"
+              target="_blank">
+              {{ file.name }}
+            </a>
+            <span class="s3-file-upload-muted">
+              {{ file.size }}
+            </span>
+          </div>
+        </div>
+
+        <button
+          class="btn uploadfield-item__remove-btn btn-secondary btn--no-text font-icon-cancel btn--icon-md"
+          @click.prevent="removeFile(file)" />
+      </div>
     </div>
 
     <input
@@ -61,195 +234,8 @@
   </div>
 </template>
 
-<script>
-import vueFilePond from 'vue-filepond';
-import 'filepond/dist/filepond.min.css';
-import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
-import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
-import axios from 'axios';
-import qs from 'qs';
-import 'src/icons';
-
-const FilePond = vueFilePond(FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
-
-export default {
-  props: {
-    payload: {
-      type: Object,
-      required: true,
-    },
-  },
-  data() {
-    return {
-      files: [],
-    };
-  },
-  components: { FilePond },
-  created() {
-    if (this.payload.files) this.files = this.payload.files;
-  },
-  computed: {
-    showUploader() {
-      if (this.allowMultiple) {
-        if (this.maxFiles !== null) {
-          return this.files?.length < this.maxFiles;
-        }
-
-        return true;
-      }
-
-      return this.files?.length === 0;
-    },
-    showFileList() {
-      if (this.allowMultiple) {
-        return true;
-      }
-
-      return !this.showUploader;
-    },
-    filepondServerConfig() {
-      return {
-        process: (fieldName, file, metadata, load, error, progress, abort, transfer, options) => {
-          const requestController = new AbortController();
-
-          this.process(file, metadata, load, error, progress, requestController);
-
-          return {
-            abort: () => {
-              requestController.abort();
-              abort();
-            }
-          };
-        },
-        revert: null,
-        restore: null,
-        load: null,
-        fetch: null,
-      };
-    },
-    maxFileSize() {
-      return this.payload?.uploaderOptions?.maxFilesize ? `${this.payload.uploaderOptions.maxFilesize}MB` : null;
-    },
-    maxFiles() {
-      return this.payload?.uploaderOptions?.maxFiles ?? null;
-    },
-    allowMultiple() {
-      return this.payload?.uploaderOptions?.allowMultiple ?? false;
-    }
-  },
-  methods: {
-    getIconClass(file) {
-      if (!file) return null;
-      const { type } = file;
-
-      if (type && type.indexOf('video') > -1) return 'file-video';
-
-      return 'file';
-    },
-    async process(file, metadata, load, error, progress, requestController) {
-      try {
-        const presignedUrlParams = {
-          ...this.payload.settings,
-          file: {
-            name: file.name,
-            type: file.type,
-          }
-        };
-
-        const presignedUrl = (await axios.post(`${location.origin}/admin/s3/sign?${qs.stringify(presignedUrlParams)}`, null, {
-          signal: requestController.signal,
-        })).data;
-
-        const awsResponse = await axios.put(presignedUrl, file, {
-          headers: {
-            'Content-Type': file.type
-          },
-          signal: requestController.signal,
-          onUploadProgress: (progressEvent) => {
-            progress(true, progressEvent.loaded, progressEvent.total);
-          }
-        });
-
-        const bucket = this.payload.settings.bucket;
-
-        // Get the file key
-        const urlParts = (new URL(presignedUrl)).pathname.slice(1).split('/');
-
-        // Remove the bucket name from the key if the path style syntax is active
-        if (this.payload.settings.usePathStyleEndpoint) {
-          urlParts.shift();
-        }
-
-        const key = urlParts.join('/');
-
-        const fileData = {
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          region: this.payload.settings.region,
-          lastModified: file.lastModified,
-          customPayload: this.payload.customPayload,
-          bucket,
-          key,
-        };
-
-        const fileCreateResponse = await axios.post(
-          `${location.origin}/admin/s3/uploaded`,
-          fileData,
-          {
-            signal: requestController.signal,
-          }
-        );
-
-        this.files.push(fileCreateResponse.data);
-        load();
-      } catch (e) {
-        if (e?.response?.data && typeof e.response.data === 'string') {
-          error(e.response.data);
-        } else {
-          error(e.message);
-        }
-      }
-    },
-    removeFile(file) {
-      axios.post(
-        `${location.origin}/admin/s3/remove/${file.id}`,
-        {
-          customPayload: this.payload.customPayload
-        }
-      ).then((response) => {
-        this.files = this.files.filter((f) => f.id !== file.id);
-      });
-    },
-    handleFileTypeDetection(source, type) {
-      return new Promise((resolve, reject) => {
-        // Try to manually detect the proper file type in case the browser failed
-        if (!type) {
-          if (typeof source.name === 'string') {
-            const extension = source.name.split('.').pop();
-
-            if (extension) {
-              // TODO check for further cases
-              switch (extension) {
-                case 'psd':
-                  resolve('image/vnd.adobe.photoshop');
-                  break;
-                default:
-                  resolve(type);
-              }
-            }
-          }
-        }
-
-        resolve(type);
-      });
-    }
-  }
-};
-</script>
-
 <style lang="less">
-@import "~styles/vars";
+@import "../styles/vars";
 
 .s3-file-upload-component {
   .s3-file-upload-muted {

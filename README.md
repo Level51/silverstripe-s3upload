@@ -33,8 +33,8 @@ Level51\S3\S3UploadField:
 ```
 
 ## Requirements
-- SilverStripe ^4.3
-- aws-sdk-php ^3.9.1
+- SilverStripe ^4 | ^5
+- aws-sdk-php ^3
 
 ## Maintainer
 - Level51 <hallo@lvl51.de>

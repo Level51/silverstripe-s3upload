@@ -81,6 +81,19 @@ class S3UploadField extends FormField
         return parent::Field($properties);
     }
 
+    public function getValue(): mixed
+    {
+        if (method_exists(parent::class, 'getValue')) {
+            return parent::getValue();
+        }
+
+        if (method_exists(parent::class, 'Value')) {
+            return parent::Value();
+        }
+
+        return null;
+    }
+
     /**
      * Get frontend payload.
      *
@@ -117,7 +130,7 @@ class S3UploadField extends FormField
                     'usePathStyleEndpoint' => $this->shouldUsePathStyleEndpoint(),
                 ],
                 'customPayload'   => $this->getCustomPayload(),
-            ]
+            ],
         );
     }
 
@@ -160,9 +173,9 @@ class S3UploadField extends FormField
             : null;
 
         // Detect DB relation or field
-        if ($relation instanceof Relation && is_array($this->Value())) {
+        if ($relation instanceof Relation && is_array($this->getValue())) {
             // Save ids into relation
-            $relation->setByIDList($this->Value());
+            $relation->setByIDList($this->getValue());
         }
 
         parent::saveInto($record);
@@ -267,8 +280,8 @@ class S3UploadField extends FormField
      */
     public function getFiles(): ?DataList
     {
-        if ($this->Value()) {
-            $ids = is_array($this->Value()) ? $this->Value() : [$this->Value()];
+        if ($this->getValue()) {
+            $ids = is_array($this->getValue()) ? $this->getValue() : [$this->getValue()];
 
             return S3File::get()->byIDs($ids);
         }
@@ -386,7 +399,7 @@ class S3UploadField extends FormField
 
         $map = new OverridingExtensionToMimeTypeMap(
             new GeneratedExtensionToMimeTypeMap(),
-            self::config()->get('ExtensionToMimeTypeOverrides') ?: []
+            self::config()->get('ExtensionToMimeTypeOverrides') ?: [],
         );
 
         return (new ExtensionMimeTypeDetector($map))->detectMimeTypeFromPath('file.' . $extension);
@@ -543,12 +556,12 @@ class S3UploadField extends FormField
     }
 
     /**
-     * @param bool $allowMultiple
-     * @param int  $maxFiles
+     * @param bool     $allowMultiple
+     * @param int|null $maxFiles
      *
      * @return $this
      */
-    public function setAllowMultiple(bool $allowMultiple, int $maxFiles = null): self
+    public function setAllowMultiple(bool $allowMultiple, ?int $maxFiles = null): self
     {
         $this->allowMultiple = $allowMultiple;
         $this->maxFiles = $maxFiles;

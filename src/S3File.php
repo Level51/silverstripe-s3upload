@@ -70,7 +70,6 @@ class S3File extends DataObject
      * @param array $body
      *
      * @return S3File
-     * @throws \SilverStripe\ORM\ValidationException
      * @throws \Exception
      */
     public static function fromUpload($body)

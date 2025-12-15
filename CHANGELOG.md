@@ -1,3 +1,12 @@
+[3.0.0] - 2025-12-15
+### Added
+- Silverstripe 5 & 6 compatibility
+- Readonly version
+
+### Changed
+- Client setup to use Vue 3 and vite as bundler
+- Ensure ISO-8859-1 safe filename in content disposition header
+
 [2.0.3] - 2022-11-16
 ### Added
 - Option to extend extension-to-mime-type map via config api

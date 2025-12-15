@@ -17,7 +17,10 @@ class Service
     use Injectable;
     use Configurable;
 
-    private S3MultiRegionClient $s3;
+    /**
+     * @var S3MultiRegionClient
+     */
+    private $s3;
 
     public function __construct()
     {
@@ -70,6 +73,33 @@ class Service
     }
 
     /**
+     * Create a proper value for the `ResponseContentDisposition` header.
+     *
+     * Ensures that the default `filename` property is ISO-8859-1 compatible.
+     * Also adds a UTF-8 version for modern browsers.
+     *
+     * @param S3File $s3File
+     * @return string
+     */
+    public function createContentDispositionHeader(S3File $s3File): string
+    {
+        // ASCII safe version for older browsers
+        $filenameSafe = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s3File->Name);
+        if (empty($filenameSafe)) {
+            $filenameSafe = 'download';
+        }
+
+        // UTF-8 encoded version for modern browsers (RFC 5987)
+        $filenameUtf8 = rawurlencode($s3File->Name);
+
+        return sprintf(
+            'attachment; filename="%s"; filename*=UTF-8\'\'%s',
+            $filenameSafe,
+            $filenameUtf8
+        );
+    }
+
+    /**
      * @param S3File $s3File File record
      * @param int    $expiresIn Time in minutes until the link gets invalid
      * @param bool   $directDownload Whether the download should be triggered immediately or not
@@ -81,11 +111,11 @@ class Service
         $params = [
             'Bucket' => $s3File->Bucket,
             'Key'    => $s3File->Key,
-            'Region' => $s3File->Region
+            'Region' => $s3File->Region,
         ];
 
         if ($directDownload) {
-            $params['ResponseContentDisposition'] = 'attachment; filename="' . $s3File->Name . '"';
+            $params['ResponseContentDisposition'] = $this->createContentDispositionHeader($s3File);
         }
 
         $command = $this->s3->getCommand('GetObject', $params);
@@ -130,7 +160,7 @@ class Service
     {
         $command = $this->s3->getCommand('HeadObject', [
             'Bucket' => $bucket,
-            'Key'    => $key
+            'Key'    => $key,
         ]);
 
         return $this->s3->execute($command)->toArray();

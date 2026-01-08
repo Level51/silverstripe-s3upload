@@ -154,7 +154,7 @@ class S3UploadField extends FormField
             $value = array_values($relation->getIDList());
 
             parent::setValue($value);
-        } elseif ($record->hasField($fieldName)) {
+        } elseif ($record->hasField($fieldName) && $record->$fieldName) {
             $value = json_decode($record->$fieldName, true);
 
             parent::setValue($value);

@@ -84,7 +84,7 @@ class Util
 
         // Re-add extension if known
         if (isset($pathinfo['extension'])) {
-            $result .= '.' . $pathinfo['extension'];
+            $result .= '.' . mb_strtolower($pathinfo['extension']);
         }
 
         // Prepend folder
